@@ -195,7 +195,7 @@ def get_periods(jurisdictionID=''):
     if jurisdictionID:
         output = pd.io.json.json_normalize(
             requests.get(
-                URL + f'/periods?jurisdictionID={jurisdictionID}').json())
+                URL + f'/periods?jurisdiction={jurisdictionID}').json())
     else:
         output = pd.io.json.json_normalize(
             requests.get(URL + f'/periods/available').json())
@@ -228,7 +228,7 @@ def list_topics():
     """
     Returns: a dictionary containing names of topics and associated IDs
     """
-    json = requests.get(URL + f'/topics').json()
+    json = requests.get(URL + f'/topics/').json()
     return dict(sorted({t["topicName"]: t["topicID"] for t in json}.items()))
 
 
@@ -236,15 +236,25 @@ def list_series():
     """
     Returns: dictionary containing names of series and associated IDs
     """
-    json = requests.get(URL + f'/series').json()
+    json = requests.get(URL + f'/series/').json()
     return dict(sorted({s["seriesName"]: s["seriesID"] for s in json}.items()))
+
+
+def list_document_types():
+    """
+    Returns: a dictionary containing names of documenttypes and associated IDs
+    """
+    json = requests.get(URL + f'/documenttypes/').json()
+    return dict(sorted({
+        d["subtypeName"]: d["documentSubtypeID"]
+        for d in json if d["subtypeName"]}.items()))
 
 
 def list_agencies():
     """
     Returns: dictionary containing names of agencies and associated IDs
     """
-    json = requests.get(URL + '/agencies').json()
+    json = requests.get(URL + '/agencies/').json()
     return dict(sorted({
         a["agencyName"]: a["agencyID"]
         for a in json if a["agencyName"]}.items()))
@@ -254,7 +264,7 @@ def list_jurisdictions():
     """
     Returns: dictionary containing names of jurisdictions and associated IDs
     """
-    json = requests.get(URL + f'/jurisdictions').json()
+    json = requests.get(URL + f'/jurisdictions/').json()
     return dict(sorted({
         j["jurisdictionName"]: j["jurisdictionID"] for j in json}.items()))
 
@@ -266,7 +276,7 @@ def list_industries(jurisdictionID):
     Returns: dictionary containing names of industries and their NAICS codes
     """
     json = requests.get(
-        URL + f'/industries?jurisdiction={jurisdictionID}').json()
+        URL + f'/industries?jurisdiction={jurisdictionID}/').json()
     return dict(sorted({
         i["industryName"]: i["industryCode"] for i in json}.items()))
 
