@@ -32,16 +32,17 @@ RegCensus API defines a number of periods depending on the series. For example, 
 There are six helper functions to retrieve information about these key components of regdata. These functions provider the following information: topics, documents, jurisdictions, series, agencies, and years with data. The list functions begin with __list__. For example, to view the list of topics call __list_topics__. When an topic id parameter is supplied, the function returns the details about a specific topic.
 
 ```
-rc.list_topics()
+rc.list_document_subtype()
 ```
 
-Each topic comprises one or more *series*. The __list_series__ function returns the list of all series when no series id is provided.
+Each subtype comprises one or more *series*. The __list_series__ function returns the list of all series when no series id is provided. This call is a great place to start if you are looking for data based on a **topic** first. 
 
-There are other helper functions that give you a tour around RegData. To see the jurisdictions with data in RegData, call __list_jurisdiction__. This function returns the complete list in a list format. 
 
 ```
 rc.list_jurisdictions(jurisdictionID = 38)
 ```
+Just like the above function call, listing the jurisdictions is another great place to start. If you are looking for data for a specifc jurisdiction(s), this function
+will return the jurisdiction_id for all jurisdiction, which is key for retrieving data on any individual jurisdiction.
 
 The __get_series_period__ function returns a list of all seriesa and the years with data available. 
 
