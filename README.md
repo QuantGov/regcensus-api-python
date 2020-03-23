@@ -44,12 +44,12 @@ rc.list_jurisdictions(jurisdictionID = 38)
 Just like the above function call, listing the jurisdictions is another great place to start. If you are looking for data for a specifc jurisdiction(s), this function
 will return the jurisdiction_id for all jurisdiction, which is key for retrieving data on any individual jurisdiction.
 
-The __get_series_period__ function returns a list of all seriesa and the years with data available. 
+The __get_periods__ function returns a list of all seriesa and the years with data available. 
 
 The output from this function can serve as a reference for the valid values that can be passed to parameters in the __get_values__ function. The number of records returned is the unique combination of series and jurisdictions that are available in RegData. The function takes the optional argument jurisdiction id.
 
 ```
-rc.get_series_period(jurisdictionID = 38)
+rc.get_periods(jurisdictionID = 38)
 ```
 
 ## Metadata
@@ -79,6 +79,16 @@ The __get_industries__ function returns a data frame of industries with data in 
 
 ```
 rc.get_industries(38)
+```
+
+### Documents
+
+The __get_documents__ function returns a data frame with metadata for document-level data. The fucntion takes two parameters, jurisdictionID (required) and documentType (default value of 3, which is "all regulations").
+
+The following line will get metadata for documents associated with U.S. Federal healthcare regulations.
+
+```
+rc.get_documents(jurisdictionID = 38, documentType = 1)
 ```
 
 ## Values
