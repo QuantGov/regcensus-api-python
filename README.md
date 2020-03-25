@@ -162,5 +162,5 @@ agency_restrictions_ind = agency_by_industry.merge(
     agencies, by='agency_id')
 ```
 
-[1]:http://ec2-3-89-6-158.compute-1.amazonaws.com:8080/regdata/swagger-ui.html
+[1]:https://api.quantgov.org/swagger-ui.html
 [2]:https://www.quantgov.org/download-interactively
