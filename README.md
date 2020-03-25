@@ -21,29 +21,30 @@ import regcensus as rc
 
 ## Structure of the API
 
-The API organizes data around __topics__, which are then divided into __series__. Within each series are __values__, which are the ultimate values of interest. Values are available by three sub-groups: agency, industry, and occupation. Presently, there are no series with occupation subgroup. However, these are available for future use. Topics broadly define the data available. For example, RegData for regulatory restrictions is falls under the broad topic "Regulatory Restrictions." Within Regulatory Restrictions topic, there are a number of series available. These include Total Restrictions, Total Wordcount, Total "Shall," etc.
+The API organizes data around __document types__, which are then divided into __series__. Within each series are __values__, which are the ultimate values of interest. Values are available by three sub-groups: agency, industry, and occupation. Presently, there are no series with occupation subgroup. However, these are available for future use. Document types broadly define the data available. For example, RegData for regulatory restrictions is falls under the broad document type "Regulatory Restrictions." Within Regulatory Restrictions document type, there are a number of series available. These include Total Restrictions, Total Wordcount, Total "Shall," etc.
 
 A fundamental concept in RegData is the "document." In RegData, a set of documents represents a body of regulations for which we have produced regulatory restriction counts. For example, to produce data on regulatory restrictions imposed by the US Federal government, RegData uses the Code of Federal Regulations (CFR) as the source documents. Within the CFR, RegData identifies a unit of regulation as the title-part combination. The CFR is organized into 50 titles, and within each title are parts, which could have subparts, but not always. Under the parts are sections. Determining this unit of analyses is critical for the context of the data produced by RegData. Producing regulatory restriction data for US states follows the same strategy but uses the state-specific regulatory code.
 
-In requesting data through the API, you must specify the document type and the indicate a preference for *summary* or *document-level*. By default, RegCensus API returns summarized data for the period of interest. This means that if you do not specify the *summary* preference, you will receive the summarized data for a period. The __list_series_period__ helper function (described below) returns the periods available for each series.
+In requesting data through the API, you must specify the document type and the indicate a preference for *summary* or *document-level*. By default, RegCensus API returns summarized data for the period of interest. This means that if you do not specify the *summary* preference, you will receive the summarized data for a period. The __get_periods__ helper function (described below) returns the periods available for each series.
 
 RegCensus API defines a number of periods depending on the series. For example, the total restrictions series of Federal regulations uses two main periods: daily and annual. The daily data produces the number of regulatory restrictions issued on a particular date by the US Federal government. The same data are available on an annual basis.
 
-There are six helper functions to retrieve information about these key components of regdata. These functions provider the following information: topics, documents, jurisdictions, series, agencies, and years with data. The list functions begin with __list__. For example, to view the list of topics call __list_topics__. When an topic id parameter is supplied, the function returns the details about a specific topic.
+There are five helper functions to retrieve information about these key components of regdata. These functions provider the following information: document types, jurisdictions, series, agencies, and periods with data. The list functions begin with __list__.
 
 ```
-rc.list_topics()
+rc.list_document_types()
 ```
 
-Each topic comprises one or more *series*. The __list_series__ function returns the list of all series when no series id is provided.
-
-There are other helper functions that give you a tour around RegData. To see the jurisdictions with data in RegData, call __list_jurisdiction__. This function returns the complete list in a list format. 
+Each document type comprises one or more *series*. The __list_series__ function returns the list of all series when no series id is provided. This call is a great place to start if you are looking for data based on a **topic** first. 
 
 ```
 rc.list_jurisdictions(jurisdictionID = 38)
 ```
 
-The __get_series_period__ function returns a list of all seriesa and the years with data available. 
+Just like the above function call, listing the jurisdictions is another great place to start. If you are looking for data for a specifc jurisdiction(s), this function
+will return the jurisdiction_id for all jurisdiction, which is key for retrieving data on any individual jurisdiction.
+
+The __get_periods__ function returns a list of all series and the years with data available for each jurisdiction. 
 
 The output from this function can serve as a reference for the valid values that can be passed to parameters in the __get_values__ function. The number of records returned is the unique combination of series and jurisdictions that are available in RegData. The function takes the optional argument jurisdiction id.
 
@@ -95,10 +96,10 @@ The __get_values__ function is the primary function for obtaining RegData from t
 * country (optional) - specify if all values for a country's jurisdiction ID should be returned. Default is False.
 * verbose (optional) - value specifying how much debugging information should be printed for each function call. Higher number specifies more information, default is 0.
 
-In the example below, we are interested in the total number of restrictions and total numbe rof words (get_topics(1)) for the US (get_jurisdictions(38)) for the period 2010 to 2018.
+In the example below, we are interested in the total number of restrictions and total number of words for the US (get_jurisdictions(38)) for the period 2010 to 2019.
 
 ```
-rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2018])
+rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019])
 ```
 
 ### Values by Subgroup
@@ -107,7 +108,7 @@ You can obtain data for any of the three subgroups for each series - agencies, i
 
 #### Values by Agencies
 
-To obtain the restrictions for a specific agency (or agencies), the series id supplied must be in the list of available series by agency. To recap, the list of available series for an agency is available via the __list_series(id,by='agency')__ function, and the list of agencies with data is available via __get_agencies__ function.
+To obtain the restrictions for a specific agency (or agencies), the series id supplied must be in the list of available series by agency. To recap, the list of available series for an agency is available via the __list_series__ function, and the list of agencies with data is available via __get_agencies__ function.
 
 ```
 # Identify all agencies
@@ -121,13 +122,25 @@ rc.get_values(series = 91, jurisdiction = 38, date = [1990, 2018], agency = [81,
 
 Some agency series may also have data by industry. For example, under the Total Restrictions topic, RegData includes the industry-relevant restrictions, which estimates the number of restrictions that apply to a given industry. These are available in both the main series - Total Restrictions, and the sub-group Restrictions by Agency. 
 
-To pull industry-relevant restrictions for an agency, call __get_agencies__ with the *industry* variable. The industry variable is of type string, and valid values include the industry codes specified in the classification system obtained by calling the __get_industries(jurisdiction)__ function.
+Valid values for industries include the industry codes specified in the classification system obtained by calling the __get_industries(jurisdiction)__ function.
 
 In the example below, the series 92 (Restrictions by Agency and Industry), we can request data for the two industries 111 and 33 by the following code snippet.
 
 ```
-rc.get_values(series = 92, jurisdiction = 38, , time = c(1990,2000), industry = c('111','33'), agency = 66)
+rc.get_values(series = 92, jurisdiction = 38, time = [1990, 2000], industry = [111, 33], agency = 66)
 ```
+
+### Document-Level Values
+
+For most use-cases, our summary-level data will be enough. However, document-level data is also available, though most of these queries take much longer to return results. Multi-year and industry results for jurisdiction 38 will especially take a long time. If you want the full dataset for United States Federal, consider using our bulk downloads, available at the [QuantGov website][2].
+
+We can request the same data from above, but at the document level, using the following code snippet.
+
+```
+rc.get_values(series = [1,2], jurisdiction = 38, date = ['2010-01-01', '2019-01-01'], summary=False)
+```
+
+Note that for document-level queries, a full date (not just the year) is often required. See the __get_periods__ function for specifics by jurisdiction.
 
 ### Merging with Metadata
 
@@ -150,3 +163,4 @@ agency_restrictions_ind = agency_by_industry.merge(
 ```
 
 [1]:http://ec2-3-89-6-158.compute-1.amazonaws.com:8080/regdata/swagger-ui.html
+[2]:https://www.quantgov.org/download-interactively
