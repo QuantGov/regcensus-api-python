@@ -128,20 +128,12 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
 
     # Puts flattened JSON output into a pandas DataFrame
     output = pd.io.json.json_normalize(requests.get(url_call).json())
-    return clean_columns(output)
-
-
-def get_topics(topicID=''):
-    """
-    Get metadata for all or one specific topic
-
-    Args: topicID (optional): ID for the topic
-
-    Returns: pandas dataframe with the metadata
-    """
-    output = pd.io.json.json_normalize(
-        requests.get(URL + f'/topics/{topicID}').json())
-    return clean_columns(output)
+    # Prints error message if call fails
+    if (output.columns[:3] == ['title', 'status', 'detail']).all():
+        print('WARNING:', output.iloc[0][-1])
+    # Returns clean data if no error
+    else:
+        return clean_columns(output)
 
 
 def get_series(seriesID=''):
@@ -183,7 +175,7 @@ def get_jurisdictions(jurisdictionID=''):
     return clean_columns(output)
 
 
-def get_periods(jurisdictionID=''):
+def get_periods(jurisdictionID='', documentType=3):
     """
     Get dates available for all or one specific jurisdiction
     and compatible series IDs
@@ -195,7 +187,8 @@ def get_periods(jurisdictionID=''):
     if jurisdictionID:
         output = pd.io.json.json_normalize(
             requests.get(
-                URL + f'/periods?jurisdiction={jurisdictionID}').json())
+                URL + (f'/periods?jurisdiction={jurisdictionID}&'
+                       f'documentType={documentType}')).json())
     else:
         output = pd.io.json.json_normalize(
             requests.get(URL + f'/periods/available').json())
@@ -235,37 +228,29 @@ def get_documents(jurisdictionID, documentType=3):
     return clean_columns(output)
 
 
-def list_topics():
+def list_document_types():
     """
-    Returns: a dictionary containing names of topics and associated IDs
+    Returns: a dictionary containing names of documenttypes and associated IDs
     """
-    json = requests.get(URL + f'/topics/').json()
-    return dict(sorted({t["topicName"]: t["topicID"] for t in json}.items()))
+    json = requests.get(URL + f'/documenttypes').json()
+    return dict(sorted({
+        d["subtypeName"]: d["documentSubtypeID"]
+        for d in json if d["subtypeName"]}.items()))
 
 
 def list_series():
     """
     Returns: dictionary containing names of series and associated IDs
     """
-    json = requests.get(URL + f'/series/').json()
+    json = requests.get(URL + f'/series').json()
     return dict(sorted({s["seriesName"]: s["seriesID"] for s in json}.items()))
-
-
-def list_document_types():
-    """
-    Returns: a dictionary containing names of documenttypes and associated IDs
-    """
-    json = requests.get(URL + f'/documenttypes/').json()
-    return dict(sorted({
-        d["subtypeName"]: d["documentSubtypeID"]
-        for d in json if d["subtypeName"]}.items()))
 
 
 def list_agencies():
     """
     Returns: dictionary containing names of agencies and associated IDs
     """
-    json = requests.get(URL + '/agencies/').json()
+    json = requests.get(URL + '/agencies').json()
     return dict(sorted({
         a["agencyName"]: a["agencyID"]
         for a in json if a["agencyName"]}.items()))
@@ -275,7 +260,7 @@ def list_jurisdictions():
     """
     Returns: dictionary containing names of jurisdictions and associated IDs
     """
-    json = requests.get(URL + f'/jurisdictions/').json()
+    json = requests.get(URL + f'/jurisdictions').json()
     return dict(sorted({
         j["jurisdictionName"]: j["jurisdictionID"] for j in json}.items()))
 
@@ -287,7 +272,7 @@ def list_industries(jurisdictionID):
     Returns: dictionary containing names of industries and their NAICS codes
     """
     json = requests.get(
-        URL + f'/industries?jurisdiction={jurisdictionID}/').json()
+        URL + f'/industries?jurisdiction={jurisdictionID}').json()
     return dict(sorted({
         i["industryName"]: i["industryCode"] for i in json}.items()))
 
