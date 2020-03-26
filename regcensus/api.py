@@ -175,7 +175,7 @@ def get_jurisdictions(jurisdictionID=''):
     return clean_columns(output)
 
 
-def get_periods(jurisdictionID=''):
+def get_periods(jurisdictionID='', documentType=3):
     """
     Get dates available for all or one specific jurisdiction
     and compatible series IDs
@@ -187,7 +187,8 @@ def get_periods(jurisdictionID=''):
     if jurisdictionID:
         output = pd.io.json.json_normalize(
             requests.get(
-                URL + f'/periods?jurisdiction={jurisdictionID}').json())
+                URL + (f'/periods?jurisdiction={jurisdictionID}&'
+                       f'documentType={documentType}')).json())
     else:
         output = pd.io.json.json_normalize(
             requests.get(URL + f'/periods/available').json())
