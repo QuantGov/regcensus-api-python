@@ -22,7 +22,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         date: Year(s) of data
         summary (optional): Return summary instead of document level data
         filtered (optional): Exclude poorly-performing industry results
-        documentType (optional): Type of document
+        documentType (optional): ID for type of document
         agency (optional): Agency ID
         industry (optional): Industry code using the jurisdiction-specific
             coding system (use 'all' for all industries)
@@ -208,10 +208,21 @@ def get_industries(jurisdictionID):
     return clean_columns(output)
 
 
-def get_documents(jurisdictionID):
+def get_documents(jurisdictionID, documentType=3):
+    """
+    Get metadata for documents available in a specific jurisdiction, optional
+    filtering by document type (see list_document_types() for options)
+
+    Args:
+        jurisdictionID: ID for the jurisdiction
+        documentType (optional): ID for type of document
+
+    Returns: pandas dataframe with the metadata
+    """
     output = pd.io.json.json_normalize(
         requests.get(
-            URL + f'/documents?jurisdiction={jurisdictionID}&documentType=3'
+            URL + (f'/documents?jurisdiction={jurisdictionID}&'
+                   f'documentType={documentType}')
             ).json())
     return clean_columns(output)
 
