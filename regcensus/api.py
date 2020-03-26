@@ -129,7 +129,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     # Puts flattened JSON output into a pandas DataFrame
     output = pd.io.json.json_normalize(requests.get(url_call).json())
     # Prints error message if call fails
-    if (output.columns == ['title', 'status', 'detail']).all():
+    if (output.columns[:3] == ['title', 'status', 'detail']).all():
         print('WARNING:', output.iloc[0][-1])
     # Returns clean data if no error
     else:
