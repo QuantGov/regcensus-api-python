@@ -56,9 +56,119 @@ def test_get_documents():
     ]
 
 
-def test_get_values():
+def test_get_values_multiple_series():
+    results = rc.get_values(
+        series=[1, 2], jurisdiction=38, date=1970, verbose=1
+    )
+    assert order_results(results, 'seriesValue') == [405647.0, 35420432.0]
+
+
+def test_get_values_incorrect_series():
+    results = rc.get_values(series=None, jurisdiction=38, date=2019)
+    assert not results
+
+
+def test_get_values_multiple_jurisdictions():
+    results = rc.get_values(series=1, jurisdiction=[58, 59], date=2019)
+    assert order_results(results, 'seriesValue') == [52569.0, 107063.0]
+
+
+def test_get_values_all_industries():
+    results = rc.get_values(
+        series=9, jurisdiction=58, date=2019, industry='all', filtered=False
+    )
+    assert order_results(results, 'seriesValue') == [
+        16.487800191811402, 28.080800290597836, 36.27130037093593,
+        36.53810011051246, 40.113500030507566, 45.02970027324045,
+        48.842899827621295, 50.17920009633963, 72.05880061667267,
+        82.19629916545819
+    ]
+
+
+def test_get_values_multiple_industries():
+    results = rc.get_values(
+        series=9, jurisdiction=58, date=2019, industry=['111', '325', '326']
+    )
+    assert order_results(results, 'seriesValue') == [
+        255.2682025779941, 649.0292048707197, 1858.660280573211
+    ]
+
+
+def test_get_values_one_industry():
+    results = rc.get_values(
+        series=9, jurisdiction=58, date=2019, industry='111', summary=False
+    )
+    # No document-level industry results exists for this jurisdiction
+    assert not results
+
+
+def test_get_values_incorrect_jurisdiction():
+    results = rc.get_values(series=1, jurisdiction=None, date=2019)
+    assert not results
+
+
+def test_get_values_date_range():
     results = rc.get_values(series=1, jurisdiction=38, date=[1970, 2019])
     assert order_results(results, 'seriesValue') == [
         405647.0, 416532.0, 452114.0, 470561.0, 500133.0,
         524992.0, 548579.0, 572123.0, 581408.0, 615181.0
     ]
+
+
+def test_get_values_multiple_dates():
+    results = rc.get_values(
+        series=1, jurisdiction=38, date=[1970, 1980, 1990, 2000]
+    )
+    assert order_results(results, 'seriesValue') == [
+        405647.0, 633754.0, 772537.0, 853661.0
+    ]
+
+
+def test_get_values_incorrect_dates():
+    results = rc.get_values(series=1, jurisdiction=38, date=None)
+    assert not results
+
+
+def test_get_values_country():
+    results = rc.get_values(series=1, jurisdiction=38, date=2019, country=True)
+    assert order_results(results, 'seriesValue') == [
+        43940.0, 52569.0, 60086.0, 63203.0, 63735.0,
+        70969.0, 78676.0, 92522.0, 104562.0, 107063.0
+    ]
+
+
+def test_get_values_agency():
+    results = rc.get_values(series=91, jurisdiction=38, date=2019, agency=195)
+    assert order_results(results, 'seriesValue') == [62.0]
+
+
+def test_get_values_multiple_agencies():
+    results = rc.get_values(
+        series=91, jurisdiction=38, date=2019, agency=[111, 99]
+    )
+    assert order_results(results, 'seriesValue') == [34167.0, 91227.0]
+
+
+def test_list_document_types():
+    results = rc.list_document_types()
+    assert results['All Regulations'] == 3
+
+
+def test_list_series():
+    results = rc.list_series()
+    assert results['Conditionals'] == 135
+
+
+def test_list_agencies():
+    results = rc.list_agencies()
+    assert results['Administrative Conference of the United States'] == 195
+
+
+def test_list_jurisdictions():
+    results = rc.list_jurisdictions()
+    assert results['Alabama'] == 59
+
+
+def test_list_industries():
+    results = rc.list_industries(jurisdictionID=38)
+    assert results['Wood Container and Pallet Manufacturing'] == '321920'
