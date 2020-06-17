@@ -127,7 +127,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         print(f'API call: {url_call}')
 
     # Puts flattened JSON output into a pandas DataFrame
-    output = pd.io.json.json_normalize(requests.get(url_call).json())
+    output = json_normalize(requests.get(url_call).json())
     # Prints error message if call fails
     if (output.columns[:3] == ['title', 'status', 'detail']).all():
         print('WARNING:', output.iloc[0][-1])
@@ -144,7 +144,7 @@ def get_series(seriesID=''):
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
+    output = json_normalize(
         requests.get(URL + f'/series/{seriesID}').json())
     return clean_columns(output)
 
@@ -157,7 +157,7 @@ def get_agencies(agencyID=''):
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
+    output = json_normalize(
         requests.get(URL + f'/agencies/{agencyID}').json())
     return clean_columns(output)
 
@@ -170,7 +170,7 @@ def get_jurisdictions(jurisdictionID=''):
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
+    output = json_normalize(
         requests.get(URL + f'/jurisdictions/{jurisdictionID}').json())
     return clean_columns(output)
 
@@ -185,12 +185,12 @@ def get_periods(jurisdictionID='', documentType=3):
     Returns: pandas dataframe with the dates
     """
     if jurisdictionID:
-        output = pd.io.json.json_normalize(
+        output = json_normalize(
             requests.get(
                 URL + (f'/periods?jurisdiction={jurisdictionID}&'
                        f'documentType={documentType}')).json())
     else:
-        output = pd.io.json.json_normalize(
+        output = json_normalize(
             requests.get(URL + f'/periods/available').json())
     return clean_columns(output)
 
@@ -203,9 +203,9 @@ def get_industries(jurisdictionID):
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
-            requests.get(
-                URL + f'/industries?jurisdiction={jurisdictionID}').json())
+    output = json_normalize(
+        requests.get(
+            URL + f'/industries?jurisdiction={jurisdictionID}').json())
     return clean_columns(output)
 
 
@@ -220,11 +220,11 @@ def get_documents(jurisdictionID, documentType=3):
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
+    output = json_normalize(
         requests.get(
             URL + (f'/documents?jurisdiction={jurisdictionID}&'
                    f'documentType={documentType}')
-            ).json())
+        ).json())
     return clean_columns(output)
 
 
@@ -281,3 +281,11 @@ def clean_columns(df):
     """Removes JSON prefixes from column names"""
     df.columns = [c.split('.')[-1] for c in df.columns]
     return df
+
+
+def json_normalize(output):
+    """Backwards compatability for old versions of pandas"""
+    try:
+        return pd.json_normalize(output)
+    except AttributeError:
+        return pd.io.json.json_normalize(output)
