@@ -12,7 +12,8 @@ URL = 'https://api.quantgov.org'
 
 def get_values(series, jurisdiction, date, filtered=True, summary=True,
                documentType=3, agency=None, industry=None, dateIsRange=True,
-               country=False, industryType='3-Digit', verbose=0):
+               country=False, industryType='3-Digit',
+               download=False, verbose=0):
     """
     Get values for a specific jurisdition and series
 
@@ -29,6 +30,10 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         dateIsRange (optional): Indicating whether the time parameter is range
             or should be treated as single data points
         country (optional): Get all values for country ID
+        industryType (optional): Level of NAICS industries to include,
+            default is '3-Digit'
+        download (optional): If not False, a path location for a
+            downloaded csv of the results
         verbose (optional): Print out the url of the API call
 
     Returns: pandas dataframe with the values and various metadata
@@ -131,6 +136,11 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     # Prints error message if call fails
     if (output.columns[:3] == ['title', 'status', 'detail']).all():
         print('WARNING:', output.iloc[0][-1])
+    elif download:
+        if type(download) == str:
+            clean_columns(output).to_csv(download, index=False)
+        else:
+            print("Valid outpath required to download.")
     # Returns clean data if no error
     else:
         return clean_columns(output)

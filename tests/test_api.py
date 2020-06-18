@@ -1,4 +1,5 @@
 import pytest
+import os
 import regcensus as rc
 
 
@@ -63,9 +64,11 @@ def test_get_values_multiple_series():
     assert order_results(results, 'seriesValue') == [405647.0, 35420432.0]
 
 
-def test_get_values_incorrect_series():
-    results = rc.get_values(series=None, jurisdiction=38, date=2019)
-    assert not results
+def test_get_values_incorrect_series(capsys):
+    rc.get_values(series=None, jurisdiction=38, date=2019)
+    assert capsys.readouterr().out == (
+        'Valid series ID required. Select from the following list:\n'
+    )
 
 
 def test_get_values_multiple_jurisdictions():
@@ -102,9 +105,9 @@ def test_get_values_one_industry():
     assert not results
 
 
-def test_get_values_incorrect_jurisdiction():
-    results = rc.get_values(series=1, jurisdiction=None, date=2019)
-    assert not results
+def test_get_values_incorrect_jurisdiction(capsys):
+    rc.get_values(series=1, jurisdiction=None, date=2019)
+    assert capsys.readouterr().out == 'Valid jurisdiction ID required.\n'
 
 
 def test_get_values_date_range():
@@ -124,9 +127,9 @@ def test_get_values_multiple_dates():
     ]
 
 
-def test_get_values_incorrect_dates():
-    results = rc.get_values(series=1, jurisdiction=38, date=None)
-    assert not results
+def test_get_values_incorrect_dates(capsys):
+    rc.get_values(series=1, jurisdiction=38, date=None)
+    assert capsys.readouterr().out == 'Valid date is required.\n'
 
 
 def test_get_values_country():
@@ -147,6 +150,21 @@ def test_get_values_multiple_agencies():
         series=91, jurisdiction=38, date=2019, agency=[111, 99]
     )
     assert order_results(results, 'seriesValue') == [34167.0, 91227.0]
+
+
+def test_get_values_download():
+    rc.get_values(
+        series=91, jurisdiction=38, date=2019, agency=195, download='test.csv'
+    )
+    assert os.path.exists('test.csv')
+    os.remove('test.csv')
+
+
+def test_get_values_incorrect_download(capsys):
+    rc.get_values(
+        series=91, jurisdiction=38, date=2019, agency=195, download=True
+    )
+    assert capsys.readouterr().out == 'Valid outpath required to download.\n'
 
 
 def test_list_document_types():
