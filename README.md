@@ -176,7 +176,7 @@ There are two different ways to download data retrieved from RegCensusAPI:
 
 1. Use the pandas `df.to_csv(outpath)` function, which allows the user to download a csv of the data, with the given outpath. See the pandas [documentation][3] for more features.
 
-2. The __get_values__ function includes a `download` argument, which allows the user to simply download a csv of the data in the same line as the API call. See below for an example of this call.
+2. As of version 0.2.0, the __get_values__ function includes a `download` argument, which allows the user to simply download a csv of the data in the same line as the API call. See below for an example of this call.
 
 ```
 rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019], download='regdata2010to2019.csv')

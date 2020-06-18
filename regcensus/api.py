@@ -136,6 +136,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     # Prints error message if call fails
     if (output.columns[:3] == ['title', 'status', 'detail']).all():
         print('WARNING:', output.iloc[0][-1])
+        return
     elif download:
         if type(download) == str:
             clean_columns(output).to_csv(download, index=False)

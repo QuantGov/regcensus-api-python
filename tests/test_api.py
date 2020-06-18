@@ -65,7 +65,8 @@ def test_get_values_multiple_series():
 
 
 def test_get_values_incorrect_series(capsys):
-    rc.get_values(series=None, jurisdiction=38, date=2019)
+    results = rc.get_values(series=None, jurisdiction=38, date=2019)
+    assert not results
     assert capsys.readouterr().out == (
         'Valid series ID required. Select from the following list:\n'
     )
@@ -99,14 +100,17 @@ def test_get_values_multiple_industries():
 
 def test_get_values_one_industry():
     results = rc.get_values(
-        series=9, jurisdiction=58, date=2019, industry='111', summary=False
+        series=9, jurisdiction=58, date='2019-05-15',
+        industry='111', summary=False
     )
-    # No document-level industry results exists for this jurisdiction
-    assert not results
+    assert order_results(results, 'seriesValue') == [
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    ]
 
 
 def test_get_values_incorrect_jurisdiction(capsys):
-    rc.get_values(series=1, jurisdiction=None, date=2019)
+    results = rc.get_values(series=1, jurisdiction=None, date=2019)
+    assert not results
     assert capsys.readouterr().out == 'Valid jurisdiction ID required.\n'
 
 
@@ -128,7 +132,8 @@ def test_get_values_multiple_dates():
 
 
 def test_get_values_incorrect_dates(capsys):
-    rc.get_values(series=1, jurisdiction=38, date=None)
+    results = rc.get_values(series=1, jurisdiction=38, date=None)
+    assert not results
     assert capsys.readouterr().out == 'Valid date is required.\n'
 
 
@@ -153,18 +158,31 @@ def test_get_values_multiple_agencies():
 
 
 def test_get_values_download():
-    rc.get_values(
+    results = rc.get_values(
         series=91, jurisdiction=38, date=2019, agency=195, download='test.csv'
     )
+    assert not results
     assert os.path.exists('test.csv')
     os.remove('test.csv')
 
 
 def test_get_values_incorrect_download(capsys):
-    rc.get_values(
+    results = rc.get_values(
         series=91, jurisdiction=38, date=2019, agency=195, download=True
     )
+    assert not results
     assert capsys.readouterr().out == 'Valid outpath required to download.\n'
+
+
+def test_get_values_error(capsys):
+    results = rc.get_values(series=1, jurisdiction=38, date=1900)
+    assert not results
+    assert capsys.readouterr().out == (
+        'WARNING: SeriesValue was not found for the specified parameters'
+        '{parameters={jurisdiction=[38], date=[1900], industry=null, '
+        'agency=null, dateIsRange=false, filteredOnly=true, summary=true, '
+        'documentType=3, documentID=null}}\n'
+    )
 
 
 def test_list_document_types():
