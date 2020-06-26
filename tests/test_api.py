@@ -20,9 +20,9 @@ def test_get_series():
 
 
 def test_get_agencies():
-    results = rc.get_agencies()
+    results = rc.get_agencies(38)
     assert order_results(results, 'agencyID') == [
-        0, 1, 64, 65, 66, 67, 68, 69, 70, 71
+        64, 65, 66, 67, 68, 69, 70, 71, 72, 73
     ]
 
 
@@ -196,7 +196,7 @@ def test_list_series():
 
 
 def test_list_agencies():
-    results = rc.list_agencies()
+    results = rc.list_agencies(38)
     assert results['Administrative Conference of the United States'] == 195
 
 

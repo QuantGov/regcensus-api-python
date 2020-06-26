@@ -160,7 +160,7 @@ def get_series(seriesID=''):
     return clean_columns(output)
 
 
-def get_agencies(agencyID=''):
+def get_agencies(jurisdictionID=''):
     """
     Get metadata for all or one specific agency
 
@@ -169,7 +169,9 @@ def get_agencies(agencyID=''):
     Returns: pandas dataframe with the metadata
     """
     output = json_normalize(
-        requests.get(URL + f'/agencies/{agencyID}').json())
+        requests.get(
+            URL + (f'/agencies/jurisdiction?'
+                   f'jurisdictions={jurisdictionID}')).json())
     return clean_columns(output)
 
 
@@ -257,11 +259,12 @@ def list_series():
     return dict(sorted({s["seriesName"]: s["seriesID"] for s in json}.items()))
 
 
-def list_agencies():
+def list_agencies(jurisdictionID):
     """
     Returns: dictionary containing names of agencies and associated IDs
     """
-    json = requests.get(URL + '/agencies').json()
+    json = requests.get(
+        URL + f'/agencies/jurisdiction?jurisdictions={jurisdictionID}').json()
     return dict(sorted({
         a["agencyName"]: a["agencyID"]
         for a in json if a["agencyName"]}.items()))
