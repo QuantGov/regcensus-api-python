@@ -160,7 +160,7 @@ def get_series(seriesID=''):
     return clean_columns(output)
 
 
-def get_agencies(jurisdictionID=''):
+def get_agencies(jurisdictionID):
     """
     Get metadata for all or one specific agency
 
