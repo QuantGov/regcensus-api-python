@@ -24,7 +24,8 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         summary (optional): Return summary instead of document level data
         filtered (optional): Exclude poorly-performing industry results
         documentType (optional): ID for type of document
-        agency (optional): Agency ID
+        agency (optional): Agency ID (use 'all' for all agencies,
+            only works for a single jurisdiction)
         industry (optional): Industry code using the jurisdiction-specific
             coding system (use 'all' for all industries)
         dateIsRange (optional): Indicating whether the time parameter is range
@@ -65,6 +66,9 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         pp.pprint(list_jurisdictions())
         return
 
+    # Allows for all agency data to be returned
+    if str(agency).lower() == 'all':
+        agency = list(list_agencies(jurisdiction).values())
     # If multiple agencies are given, parses the list into a string
     if type(agency) == list:
         url_call += f'&agency={",".join(str(i) for i in agency)}'

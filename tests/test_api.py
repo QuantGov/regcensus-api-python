@@ -150,6 +150,15 @@ def test_get_values_agency():
     assert order_results(results, 'seriesValue') == [62.0]
 
 
+def test_get_values_all_agencies():
+    results = rc.get_values(
+        series=91, jurisdiction=38, date=2019, agency='all'
+    )
+    assert order_results(results, 'seriesValue') == [
+        0.0, 0.0, 1.0, 1.0, 5.0, 18.0, 33.0, 34.0, 50.0, 59.0
+    ]
+
+
 def test_get_values_multiple_agencies():
     results = rc.get_values(
         series=91, jurisdiction=38, date=2019, agency=[111, 99]
