@@ -112,6 +112,14 @@ In the example below, we are interested in the total number of restrictions and 
 rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019])
 ```
 
+### Get all Values for a Country
+
+The `country` argument can be used to get all values for one or multiple series for a specific national jurisdiction. The following line will get you a summary of the national and state-level restriction counts for the United States from 2016 to 2019:
+
+```
+rc.get_values(series = 1, jurisdiction = 38, date = [2016, 2019], country=True)
+```
+
 ### Values by Subgroup
 
 You can obtain data for any of the three subgroups for each series - agencies, industries, and occupations (when they become available).
