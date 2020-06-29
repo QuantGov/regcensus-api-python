@@ -166,9 +166,9 @@ def get_series(seriesID=''):
 
 def get_agencies(jurisdictionID):
     """
-    Get metadata for all or one specific agency
+    Get metadata for all agencies of a specific jurisdiction
 
-    Args: agencyID (optional): ID for the agency
+    Args: jurisdictionID: ID for the jurisdiction
 
     Returns: pandas dataframe with the metadata
     """
@@ -265,6 +265,8 @@ def list_series():
 
 def list_agencies(jurisdictionID):
     """
+    Args: jurisdictionID: ID for the jurisdiction
+
     Returns: dictionary containing names of agencies and associated IDs
     """
     json = requests.get(
