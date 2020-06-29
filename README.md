@@ -1,3 +1,5 @@
+_The current version of RegCensusAPI is only compatible with Python 3.6 and newer._
+
 # RegCensus API
 
 ## Introduction
@@ -100,6 +102,8 @@ The __get_values__ function is the primary function for obtaining RegData from t
 * filtered (optional) - specify if poorly-performing industry results should be excluded. Default is True.
 * summary (optional) - specify if summary results should be returned, instead of document-level results. Default is True.
 * country (optional) - specify if all values for a country's jurisdiction ID should be returned. Default is False.
+* industryType (optional): Level of NAICS industries to include, default is '3-Digit'.
+* download (optional): If not False, a path location for a downloaded csv of the results.
 * verbose (optional) - value specifying how much debugging information should be printed for each function call. Higher number specifies more information, default is 0.
 
 In the example below, we are interested in the total number of restrictions and total number of words for the US (get_jurisdictions(38)) for the period 2010 to 2019.
@@ -168,5 +172,18 @@ agency_restrictions_ind = agency_by_industry.merge(
     agencies, by='agency_id')
 ```
 
+## Downloading Data
+
+There are two different ways to download data retrieved from RegCensusAPI:
+
+1. Use the pandas `df.to_csv(outpath)` function, which allows the user to download a csv of the data, with the given outpath. See the pandas [documentation][3] for more features.
+
+2. As of version 0.2.0, the __get_values__ function includes a `download` argument, which allows the user to simply download a csv of the data in the same line as the API call. See below for an example of this call.
+
+```
+rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019], download='regdata2010to2019.csv')
+```
+
 [1]:https://api.quantgov.org/swagger-ui.html
 [2]:https://www.quantgov.org/download-interactively
+[3]:https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html

@@ -12,7 +12,8 @@ URL = 'https://api.quantgov.org'
 
 def get_values(series, jurisdiction, date, filtered=True, summary=True,
                documentType=3, agency=None, industry=None, dateIsRange=True,
-               country=False, industryType='3-Digit', verbose=0):
+               country=False, industryType='3-Digit',
+               download=False, verbose=0):
     """
     Get values for a specific jurisdition and series
 
@@ -23,12 +24,17 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         summary (optional): Return summary instead of document level data
         filtered (optional): Exclude poorly-performing industry results
         documentType (optional): ID for type of document
-        agency (optional): Agency ID
+        agency (optional): Agency ID (use 'all' for all agencies,
+            only works for a single jurisdiction)
         industry (optional): Industry code using the jurisdiction-specific
             coding system (use 'all' for all industries)
         dateIsRange (optional): Indicating whether the time parameter is range
             or should be treated as single data points
         country (optional): Get all values for country ID
+        industryType (optional): Level of NAICS industries to include,
+            default is '3-Digit'
+        download (optional): If not False, a path location for a
+            downloaded csv of the results
         verbose (optional): Print out the url of the API call
 
     Returns: pandas dataframe with the values and various metadata
@@ -60,6 +66,9 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         pp.pprint(list_jurisdictions())
         return
 
+    # Allows for all agency data to be returned
+    if str(agency).lower() == 'all':
+        agency = list(list_agencies(jurisdiction).values())
     # If multiple agencies are given, parses the list into a string
     if type(agency) == list:
         url_call += f'&agency={",".join(str(i) for i in agency)}'
@@ -127,10 +136,16 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         print(f'API call: {url_call}')
 
     # Puts flattened JSON output into a pandas DataFrame
-    output = pd.io.json.json_normalize(requests.get(url_call).json())
+    output = json_normalize(requests.get(url_call).json())
     # Prints error message if call fails
     if (output.columns[:3] == ['title', 'status', 'detail']).all():
         print('WARNING:', output.iloc[0][-1])
+        return
+    elif download:
+        if type(download) == str:
+            clean_columns(output).to_csv(download, index=False)
+        else:
+            print("Valid outpath required to download.")
     # Returns clean data if no error
     else:
         return clean_columns(output)
@@ -144,21 +159,23 @@ def get_series(seriesID=''):
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
+    output = json_normalize(
         requests.get(URL + f'/series/{seriesID}').json())
     return clean_columns(output)
 
 
-def get_agencies(agencyID=''):
+def get_agencies(jurisdictionID):
     """
-    Get metadata for all or one specific agency
+    Get metadata for all agencies of a specific jurisdiction
 
-    Args: agencyID (optional): ID for the agency
+    Args: jurisdictionID: ID for the jurisdiction
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
-        requests.get(URL + f'/agencies/{agencyID}').json())
+    output = json_normalize(
+        requests.get(
+            URL + (f'/agencies/jurisdiction?'
+                   f'jurisdictions={jurisdictionID}')).json())
     return clean_columns(output)
 
 
@@ -170,7 +187,7 @@ def get_jurisdictions(jurisdictionID=''):
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
+    output = json_normalize(
         requests.get(URL + f'/jurisdictions/{jurisdictionID}').json())
     return clean_columns(output)
 
@@ -185,12 +202,12 @@ def get_periods(jurisdictionID='', documentType=3):
     Returns: pandas dataframe with the dates
     """
     if jurisdictionID:
-        output = pd.io.json.json_normalize(
+        output = json_normalize(
             requests.get(
                 URL + (f'/periods?jurisdiction={jurisdictionID}&'
                        f'documentType={documentType}')).json())
     else:
-        output = pd.io.json.json_normalize(
+        output = json_normalize(
             requests.get(URL + f'/periods/available').json())
     return clean_columns(output)
 
@@ -203,9 +220,9 @@ def get_industries(jurisdictionID):
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
-            requests.get(
-                URL + f'/industries?jurisdiction={jurisdictionID}').json())
+    output = json_normalize(
+        requests.get(
+            URL + f'/industries?jurisdiction={jurisdictionID}').json())
     return clean_columns(output)
 
 
@@ -220,11 +237,11 @@ def get_documents(jurisdictionID, documentType=3):
 
     Returns: pandas dataframe with the metadata
     """
-    output = pd.io.json.json_normalize(
+    output = json_normalize(
         requests.get(
             URL + (f'/documents?jurisdiction={jurisdictionID}&'
                    f'documentType={documentType}')
-            ).json())
+        ).json())
     return clean_columns(output)
 
 
@@ -246,11 +263,14 @@ def list_series():
     return dict(sorted({s["seriesName"]: s["seriesID"] for s in json}.items()))
 
 
-def list_agencies():
+def list_agencies(jurisdictionID):
     """
+    Args: jurisdictionID: ID for the jurisdiction
+
     Returns: dictionary containing names of agencies and associated IDs
     """
-    json = requests.get(URL + '/agencies').json()
+    json = requests.get(
+        URL + f'/agencies/jurisdiction?jurisdictions={jurisdictionID}').json()
     return dict(sorted({
         a["agencyName"]: a["agencyID"]
         for a in json if a["agencyName"]}.items()))
@@ -281,3 +301,11 @@ def clean_columns(df):
     """Removes JSON prefixes from column names"""
     df.columns = [c.split('.')[-1] for c in df.columns]
     return df
+
+
+def json_normalize(output):
+    """Backwards compatability for old versions of pandas"""
+    try:
+        return pd.json_normalize(output)
+    except AttributeError:
+        return pd.io.json.json_normalize(output)
