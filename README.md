@@ -15,7 +15,7 @@ The RegCensus Python library is pip installable:
 $ pip install regcensus
 ```
 
-Once installed, import the library, using the following (using the `rc` alias to more easily use the library):
+Once installed, import the library, using the following (use the `rc` alias to more easily use the library):
 
 ```
 import regcensus as rc
@@ -102,14 +102,22 @@ The __get_values__ function is the primary function for obtaining RegData from t
 * filtered (optional) - specify if poorly-performing industry results should be excluded. Default is True.
 * summary (optional) - specify if summary results should be returned, instead of document-level results. Default is True.
 * country (optional) - specify if all values for a country's jurisdiction ID should be returned. Default is False.
-* industryType (optional): Level of NAICS industries to include, default is '3-Digit'.
-* download (optional): If not False, a path location for a downloaded csv of the results.
+* industryType (optional): level of NAICS industries to include. Default is '3-Digit'.
+* download (optional): if not False, a path location for a downloaded csv of the results.
 * verbose (optional) - value specifying how much debugging information should be printed for each function call. Higher number specifies more information, default is 0.
 
 In the example below, we are interested in the total number of restrictions and total number of words for the US (get_jurisdictions(38)) for the period 2010 to 2019.
 
 ```
 rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019])
+```
+
+### Get all Values for a Country
+
+The `country` argument can be used to get all values for one or multiple series for a specific national jurisdiction. The following line will get you a summary of the national and state-level restriction counts for the United States from 2016 to 2019:
+
+```
+rc.get_values(series = 1, jurisdiction = 38, date = [2016, 2019], country=True)
 ```
 
 ### Values by Subgroup
