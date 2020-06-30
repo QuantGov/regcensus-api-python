@@ -1,9 +1,8 @@
 .DS_Store
-
 *.egg-info
-
-__pycache__
-
+*__pycache__
 build/
-
 dist/
+.coverage
+*tox*
+.python-version
