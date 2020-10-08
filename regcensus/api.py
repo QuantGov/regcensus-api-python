@@ -7,7 +7,7 @@ pp = pprint.PrettyPrinter()
 
 date_format = re.compile(r'\d{4}(?:-\d{2}-\d{2})?')
 
-URL = 'https://api.quantgov.org'
+URL = 'http://ec2-18-214-181-163.compute-1.amazonaws.com'
 
 
 def get_values(series, jurisdiction, date, filtered=True, summary=True,
@@ -151,7 +151,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         return clean_columns(output)
 
 
-def get_series(seriesID=''):
+def get_series(seriesID='', verbose=0):
     """
     Get metadata for all or one specific series
 
@@ -159,12 +159,13 @@ def get_series(seriesID=''):
 
     Returns: pandas dataframe with the metadata
     """
-    output = json_normalize(
-        requests.get(URL + f'/series/{seriesID}').json())
-    return clean_columns(output)
+    url_call = URL + f'/series/{seriesID}'
+    if verbose:
+        print(f'API call: {url_call}')
+    return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_agencies(jurisdictionID):
+def get_agencies(jurisdictionID, verbose=0):
     """
     Get metadata for all agencies of a specific jurisdiction
 
@@ -172,14 +173,14 @@ def get_agencies(jurisdictionID):
 
     Returns: pandas dataframe with the metadata
     """
-    output = json_normalize(
-        requests.get(
-            URL + (f'/agencies/jurisdiction?'
-                   f'jurisdictions={jurisdictionID}')).json())
-    return clean_columns(output)
+    url_call = URL + (f'/agencies/jurisdiction?'
+                      f'jurisdictions={jurisdictionID}')
+    if verbose:
+        print(f'API call: {url_call}')
+    return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_jurisdictions(jurisdictionID=''):
+def get_jurisdictions(jurisdictionID='', verbose=0):
     """
     Get metadata for all or one specific jurisdiction
 
@@ -187,32 +188,35 @@ def get_jurisdictions(jurisdictionID=''):
 
     Returns: pandas dataframe with the metadata
     """
-    output = json_normalize(
-        requests.get(URL + f'/jurisdictions/{jurisdictionID}').json())
-    return clean_columns(output)
+    url_call = URL + f'/jurisdictions/{jurisdictionID}'
+    if verbose:
+        print(f'API call: {url_call}')
+    return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_periods(jurisdictionID='', documentType=3):
+def get_periods(jurisdictionID, seriesID='', documentType=3, verbose=0):
     """
-    Get dates available for all or one specific jurisdiction
-    and compatible series IDs
+    Get dates available for all or one specific series for a jurisdiction
 
-    Args: jurisdictionID (optional): ID for the jurisdiction
+    Args:
+        jurisdictionID: ID for the jurisdiction
+        seriesID (optional): ID for the series
 
     Returns: pandas dataframe with the dates
     """
-    if jurisdictionID:
-        output = json_normalize(
-            requests.get(
-                URL + (f'/periods?jurisdiction={jurisdictionID}&'
-                       f'documentType={documentType}')).json())
+    if seriesID:
+        url_call = (URL + (f'/periods?jurisdiction={jurisdictionID}&'
+                           f'series={seriesID}&'
+                           f'documentType={documentType}'))
     else:
-        output = json_normalize(
-            requests.get(URL + f'/periods/available').json())
-    return clean_columns(output)
+        url_call = (URL + (f'/periods?jurisdiction={jurisdictionID}&'
+                           f'documentType={documentType}'))
+    if verbose:
+        print(f'API call: {url_call}')
+    return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_industries(jurisdictionID):
+def get_industries(jurisdictionID, verbose=0):
     """
     Get metadata for all industries available in a specific jurisdiction
 
@@ -220,13 +224,13 @@ def get_industries(jurisdictionID):
 
     Returns: pandas dataframe with the metadata
     """
-    output = json_normalize(
-        requests.get(
-            URL + f'/industries?jurisdiction={jurisdictionID}').json())
-    return clean_columns(output)
+    url_call = URL + f'/industries?jurisdiction={jurisdictionID}'
+    if verbose:
+        print(f'API call: {url_call}')
+    return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_documents(jurisdictionID, documentType=3):
+def get_documents(jurisdictionID, documentType=3, verbose=0):
     """
     Get metadata for documents available in a specific jurisdiction, optional
     filtering by document type (see list_document_types() for options)
@@ -237,12 +241,11 @@ def get_documents(jurisdictionID, documentType=3):
 
     Returns: pandas dataframe with the metadata
     """
-    output = json_normalize(
-        requests.get(
-            URL + (f'/documents?jurisdiction={jurisdictionID}&'
-                   f'documentType={documentType}')
-        ).json())
-    return clean_columns(output)
+    url_call = URL + (f'/documents?jurisdiction={jurisdictionID}&'
+                      f'documentType={documentType}')
+    if verbose:
+        print(f'API call: {url_call}')
+    return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
 def list_document_types():
