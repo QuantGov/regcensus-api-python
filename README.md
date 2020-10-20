@@ -7,6 +7,8 @@ RegCensusAPI is an API client that connects to the RegData regulatory restrictio
 
 This Python API client connects to the api located at at the [QuantGov website][1]. More advanced users who want to interact with the API directly can use the link above to pull data from the RegData API. R users can access the same features provided in this package in the R package __regcensusAPI__.
 
+We put together a short video tutorial, showing some of the basics of the API library. You can view that [here][4].
+
 ## Installing and Importing __RegCensus__
 
 The RegCensus Python library is pip installable:
@@ -195,3 +197,4 @@ rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019], download='
 [1]:https://api.quantgov.org/swagger-ui.html
 [2]:https://www.quantgov.org/download-interactively
 [3]:https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
+[4]:https://mercatus.wistia.com/medias/1hxnkfjnxa
