@@ -36,7 +36,7 @@ def test_get_jurisdictions():
 
 
 def test_get_periods():
-    results = rc.get_periods(38, verbose=1)
+    results = rc.get_periods(38, documentType=3, verbose=1)
     assert order_results(results, 'recordsAvailable', descending=True) == [
         30696278, 30696278, 30696278, 30696278, 30696278,
         30696278, 30696278, 30696278, 30696278, 30696278
@@ -44,8 +44,8 @@ def test_get_periods():
 
 
 def test_get_periods_one_series():
-    results = rc.get_periods(38, seriesID=19, verbose=1)
-    assert order_results(results, 'recordsAvailable') == [16796, 16796]
+    results = rc.get_periods(20, documentType=3, seriesID=19, verbose=1)
+    assert order_results(results, 'recordsAvailable') == [13]
 
 
 def test_get_industries():

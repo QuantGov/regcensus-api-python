@@ -102,7 +102,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     # and function returns empty.
     else:
         print("Valid date is required.")
-        pp.pprint(get_periods(jurisdiction))
+        pp.pprint(get_periods(jurisdiction, documentType=3))
         return
 
     if dateIsRange:
@@ -194,12 +194,14 @@ def get_jurisdictions(jurisdictionID='', verbose=0):
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_periods(jurisdictionID, seriesID='', documentType=3, verbose=0):
+def get_periods(jurisdictionID, documentType, seriesID='', verbose=0):
     """
     Get dates available for all or one specific series for a jurisdiction
 
     Args:
         jurisdictionID: ID for the jurisdiction
+        documentType: document type (regulations, statutes, etc.),
+            see list_document_types()
         seriesID (optional): ID for the series
 
     Returns: pandas dataframe with the dates
