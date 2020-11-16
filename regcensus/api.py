@@ -11,7 +11,7 @@ URL = 'https://api.quantgov.org'
 
 
 def get_values(series, jurisdiction, date, filtered=True, summary=True,
-               documentType=3, agency=None, industry=None, dateIsRange=True,
+               documentType=1, agency=None, industry=None, dateIsRange=True,
                country=False, industryType='3-Digit',
                download=False, verbose=0):
     """
@@ -232,7 +232,7 @@ def get_industries(jurisdictionID, verbose=0):
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_documents(jurisdictionID, documentType=3, verbose=0):
+def get_documents(jurisdictionID, documentType=1, verbose=0):
     """
     Get metadata for documents available in a specific jurisdiction, optional
     filtering by document type (see list_document_types() for options)

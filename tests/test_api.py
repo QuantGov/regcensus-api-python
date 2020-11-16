@@ -15,9 +15,10 @@ def order_results(results, column, descending=False):
 def test_get_series():
     results = rc.get_series(verbose=1)
     assert order_results(results, 'seriesCode') == [
-        'NY.GDP.MKTP.CD', 'NY.GDP.MKTP.KD', 'NY.GDP.MKTP.KD.ZG',
-        'NY.GDP.PCAP.KD.ZG', 'RG_DRST0000001A', 'RG_HLC1000002A',
-        'RG_OCL1000002A', 'RG_OCL1000002B', 'RG_OCL1000002C', 'RG_OCLI1000001A'
+        'NY.GDP.MKTP.CD', 'NY.GDP.MKTP.CD', 'NY.GDP.MKTP.KD',
+        'NY.GDP.MKTP.KD', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.MKTP.KD.ZG',
+        'NY.GDP.PCAP.KD.ZG', 'NY.GDP.PCAP.KD.ZG', 'RG_DRST0000001A',
+        'RG_HLC1000002A'
     ]
 
 
@@ -36,7 +37,7 @@ def test_get_jurisdictions():
 
 
 def test_get_periods():
-    results = rc.get_periods(38, documentType=3, verbose=1)
+    results = rc.get_periods(38, documentType=1, verbose=1)
     assert order_results(results, 'recordsAvailable', descending=True) == [
         30696278, 30696278, 30696278, 30696278, 30696278,
         30696278, 30696278, 30696278, 30696278, 30696278
@@ -44,7 +45,7 @@ def test_get_periods():
 
 
 def test_get_periods_one_series():
-    results = rc.get_periods(20, documentType=3, seriesID=19, verbose=1)
+    results = rc.get_periods(20, documentType=1, seriesID=29, verbose=1)
     assert order_results(results, 'recordsAvailable') == [13]
 
 
@@ -156,13 +157,13 @@ def test_get_values_country():
 
 
 def test_get_values_agency():
-    results = rc.get_values(series=91, jurisdiction=38, date=2019, agency=195)
+    results = rc.get_values(series=13, jurisdiction=38, date=2019, agency=195)
     assert order_results(results, 'seriesValue') == [62.0]
 
 
 def test_get_values_all_agencies():
     results = rc.get_values(
-        series=91, jurisdiction=38, date=2019, agency='all'
+        series=13, jurisdiction=38, date=2019, agency='all'
     )
     assert order_results(results, 'seriesValue') == [
         0.0, 0.0, 1.0, 1.0, 5.0, 18.0, 33.0, 34.0, 50.0, 59.0
@@ -171,14 +172,14 @@ def test_get_values_all_agencies():
 
 def test_get_values_multiple_agencies():
     results = rc.get_values(
-        series=91, jurisdiction=38, date=2019, agency=[111, 99]
+        series=13, jurisdiction=38, date=2019, agency=[111, 99]
     )
     assert order_results(results, 'seriesValue') == [34167.0, 91227.0]
 
 
 def test_get_values_download():
     results = rc.get_values(
-        series=91, jurisdiction=38, date=2019, agency=195, download='test.csv'
+        series=13, jurisdiction=38, date=2019, agency=195, download='test.csv'
     )
     assert not results
     assert os.path.exists('test.csv')
@@ -187,14 +188,14 @@ def test_get_values_download():
 
 def test_get_values_incorrect_download(capsys):
     results = rc.get_values(
-        series=91, jurisdiction=38, date=2019, agency=195, download=True
+        series=13, jurisdiction=38, date=2019, agency=195, download=True
     )
     assert not results
     assert capsys.readouterr().out == 'Valid outpath required to download.\n'
 
 
 def test_get_values_error(capsys):
-    results = rc.get_values(series=1, jurisdiction=38, date=1900)
+    results = rc.get_values(series=1, jurisdiction=38, date=1900, verbose=1)
     assert not results
     assert capsys.readouterr().out == (
         'WARNING: SeriesValue was not found for the specified parameters. '
@@ -211,12 +212,12 @@ def test_get_values_error(capsys):
 
 def test_list_document_types():
     results = rc.list_document_types()
-    assert results['Regulation text: All regulations'] == 3
+    assert results['Regulation text: All regulations'] == 1
 
 
 def test_list_series():
     results = rc.list_series()
-    assert results['Complexity: Conditionals analysis'] == 135
+    assert results['Complexity: Conditionals analysis'] == 53
 
 
 def test_list_agencies():
