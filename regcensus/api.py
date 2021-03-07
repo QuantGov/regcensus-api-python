@@ -114,7 +114,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         if industry:
             print('WARNING: Returning document-level industry results. '
                   'This query make take several minutes.')
-        url_call += '&summary=false'
+        url_call = url_call.replace('/values', '/values/documents')
 
     # Allows for unfiltered industry results to be retrieved. Includes
     # warning message explaining that these results should not be trusted.
