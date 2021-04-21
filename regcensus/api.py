@@ -7,12 +7,12 @@ pp = pprint.PrettyPrinter()
 
 date_format = re.compile(r'\d{4}(?:-\d{2}-\d{2})?')
 
-URL = 'https://api.quantgov.org'
+URL = 'http://ec2-18-214-181-163.compute-1.amazonaws.com'
 
 
 def get_values(series, jurisdiction, date, filtered=True, summary=True,
                documentType=1, agency=None, industry=None, dateIsRange=True,
-               country=False, industryType='3-Digit',
+               country=False, industryType='3-Digit', version=None,
                download=False, verbose=0):
     """
     Get values for a specific jurisdition and series
@@ -33,6 +33,8 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         country (optional): Get all values for country ID
         industryType (optional): Level of NAICS industries to include,
             default is '3-Digit'
+        version (optional): Version ID for datasets with multiple versions,
+            if no ID is given, API returns most recent version
         download (optional): If not False, a path location for a
             downloaded csv of the results
         verbose (optional): Print out the url of the API call
@@ -130,6 +132,10 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     if country:
         url_call = url_call.replace(
             '?', '/country?').replace('jurisdiction', 'countries')
+
+    # Adds version argument if different version is requested
+    if version:
+        url_call += f'&version={version}'
 
     # Prints the url call if verbosity is flagged
     if verbose:
@@ -244,6 +250,23 @@ def get_documents(jurisdictionID, documentType=1, verbose=0):
     Returns: pandas dataframe with the metadata
     """
     url_call = URL + (f'/documents?jurisdiction={jurisdictionID}&'
+                      f'documentType={documentType}')
+    if verbose:
+        print(f'API call: {url_call}')
+    return clean_columns(json_normalize(requests.get(url_call).json()))
+
+
+def get_versions(jurisdictionID, documentType=1, verbose=0):
+    """
+    Get metadata for versions available in a specific jurisdiction.
+
+    Args:
+        jurisdictionID: ID for the jurisdiction
+        documentType (optional): ID for type of document
+
+    Returns: pandas dataframe with the metadata
+    """
+    url_call = URL + (f'/version?jurisdiction={jurisdictionID}&'
                       f'documentType={documentType}')
     if verbose:
         print(f'API call: {url_call}')
