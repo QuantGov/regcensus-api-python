@@ -254,7 +254,7 @@ def list_document_types():
     """
     Returns: a dictionary containing names of documenttypes and associated IDs
     """
-    json = requests.get(URL + f'/documenttypes').json()
+    json = requests.get(URL + '/documenttypes').json()
     return dict(sorted({
         d["subtypeName"]: d["documentSubtypeID"]
         for d in json if d["subtypeName"]}.items()))
@@ -264,7 +264,7 @@ def list_series():
     """
     Returns: dictionary containing names of series and associated IDs
     """
-    json = requests.get(URL + f'/series').json()
+    json = requests.get(URL + '/series').json()
     return dict(sorted({s["seriesName"]: s["seriesID"] for s in json}.items()))
 
 
@@ -285,7 +285,7 @@ def list_jurisdictions():
     """
     Returns: dictionary containing names of jurisdictions and associated IDs
     """
-    json = requests.get(URL + f'/jurisdictions').json()
+    json = requests.get(URL + '/jurisdictions').json()
     return dict(sorted({
         j["jurisdictionName"]: j["jurisdictionID"] for j in json}.items()))
 

@@ -4,7 +4,7 @@ import setuptools
 
 setup(
     name='regcensus',
-    version='0.2.3',
+    version='0.2.4',
     description='Python package for accessing data from the QuantGov API',
     url='https://github.com/QuantGov/regcensus-api-python',
     author='QuantGov',
@@ -14,5 +14,9 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+    ],
+    install_requires=[
+        'pandas',
+        'requests'
     ],
 )
