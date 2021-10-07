@@ -15,11 +15,9 @@ def order_results(results, column, descending=False):
 def test_get_series():
     results = rc.get_series(verbose=1)
     assert order_results(results, 'seriesCode') == [
-        'FRASE001', 'FRASE002', 'HC_THRESH',
-        'NY.GDP.MKTP.CD', 'NY.GDP.MKTP.CD', 'NY.GDP.MKTP.KD',
-        'NY.GDP.MKTP.KD', 'NY.GDP.MKTP.KD.ZG',
-        'NY.GDP.MKTP.KD.ZG', 'NY.GDP.PCAP.KD.ZG'
-    ]
+        'FRASE001', 'FRASE002', 'HC_THRESH', 'OL_THRESH',
+        'Placeholder', 'Placeholder', 'Placeholder',
+        'Placeholder', 'Placeholder', 'Placeholder']
 
 
 def test_get_agencies():
@@ -38,10 +36,9 @@ def test_get_jurisdictions():
 
 def test_get_periods():
     results = rc.get_periods(38, documentType=1, verbose=1)
-    assert order_results(results, 'recordsAvailable', descending=True) == [
-        36123495, 36123495, 36123495, 36123495, 36123495,
-        36123495, 36123495, 36123495, 36123495, 36123495
-    ]
+    assert order_results(results, 'recordsAvailable', descending=True) == (
+        [37004219] * 10
+    )
 
 
 def test_get_periods_one_series():
@@ -52,8 +49,8 @@ def test_get_periods_one_series():
 def test_get_industries():
     results = rc.get_industries(jurisdictionID=38, verbose=1)
     assert order_results(results, 'industryCode') == [
-        '0', '11', '111', '1111', '11111', '111110',
-        '11112', '111120', '11113', '111130'
+        '0', '10', '11', '11', '111', '1111',
+        '11111', '111110', '11112', '111120'
     ]
 
 
@@ -62,6 +59,16 @@ def test_get_documents():
     assert order_results(results, 'documentID') == [
         4441363, 4441364, 4441365, 4441366, 4441367,
         4441368, 4441369, 4441370, 4441371, 4441372
+    ]
+
+
+def test_get_document_values():
+    results = rc.get_document_values(
+        series=[1, 2], jurisdiction=20, date='2020-06-02', verbose=1
+    )
+    assert order_results(results, 'seriesValue', descending=True) == [
+        1958601.0, 466414.0, 248869.0, 236149.0, 133169.0,
+        103682.0, 98257.0, 90961.0, 90862.0, 90758.0
     ]
 
 
@@ -101,9 +108,7 @@ def test_get_values_multiple_industries():
     results = rc.get_values(
         series=9, jurisdiction=58, date=2019, industry=['111', '325', '326']
     )
-    assert order_results(results, 'seriesValue') == [
-        255.2682025779941, 649.0292048707197, 1858.660280573211
-    ]
+    assert order_results(results, 'seriesValue') == [266.73399629061896]
 
 
 def test_get_values_one_industry():
@@ -205,15 +210,17 @@ def test_get_values_error(capsys):
     results = rc.get_values(series=1, jurisdiction=38, date=1900, verbose=1)
     assert not results
     assert capsys.readouterr().out == (
+        'API call: http://ec2-18-214-181-163.compute-1.amazonaws.com/values'
+        '?series=1&jurisdiction=38&date=1900&documentType=1\n'
         'WARNING: SeriesValue was not found for the specified parameters. '
         'Please check that you have selected the right combination of '
-        'parameters.  When in doubt, please use the /periods endpoint to '
-        'find out the combinations of series, jurisdiction, periods, '
-        'agencies, document types for which there are data available.'
-        '{parameters={jurisdiction=[US_UNITED_STATES], date=[1900], '
-        'industry=null, agency=null, dateIsRange=false, filteredOnly=true, '
-        'summary=true, series=[SERIES_1], documentType=ALL_REGULATIONS, '
-        'documentID=null}}\n'
+        'parameters.  When in doubt, please use the /periods endpoint to find '
+        'out the combinations of series, jurisdiction, periods, agencies, '
+        'document types for which there are data available.{parameters='
+        '{jurisdiction=[US_UNITED_STATES], date=[1900], industry=null, '
+        'agency=null, dateIsRange=false, filteredOnly=true, '
+        'series=[SERIES_1], documentType=REGULATION_TEXT_ALL_REGULATIONS, '
+        'documentID=null, national=false}}\n'
     )
 
 
@@ -224,7 +231,7 @@ def test_list_document_types():
 
 def test_list_series():
     results = rc.list_series()
-    assert results['Complexity Conditionals analysis'] == 53
+    assert results['Complexity Conditionals'] == 53
 
 
 def test_list_agencies():

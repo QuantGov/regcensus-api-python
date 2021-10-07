@@ -161,6 +161,12 @@ We can request the same data from above, but at the document level, using the fo
 rc.get_values(series = [1,2], jurisdiction = 38, date = ['2010-01-01', '2019-01-01'], summary=False)
 ```
 
+Alternatively, we can use the  __get_document_values__ function as in the following code snippet.
+
+```
+rc.get_document_values(series = [1,2], jurisdiction = 38, date = ['2010-01-01', '2019-01-01'])
+```
+
 Note that for document-level queries, a full date (not just the year) is often required. See the __get_periods__ function for specifics by jurisdiction.
 
 ### Version
