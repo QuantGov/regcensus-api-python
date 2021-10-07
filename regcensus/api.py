@@ -157,6 +157,15 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         return clean_columns(output)
 
 
+def get_document_values(*args, **kwargs):
+    """
+    Get values for a specific jurisdition and series at the document level
+
+    Simply returns get_values() with summary=False
+    """
+    return get_values(*args, **kwargs, summary=False)
+
+
 def get_series(seriesID='', verbose=0):
     """
     Get metadata for all or one specific series

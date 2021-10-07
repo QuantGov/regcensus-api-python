@@ -1,5 +1,6 @@
 __all__ = [
     'get_values',
+    'get_document_values',
     'get_series',
     'get_agencies',
     'get_jurisdictions',
@@ -16,6 +17,7 @@ __all__ = [
 
 from . api import (
     get_values,
+    get_document_values,
     get_series,
     get_agencies,
     get_jurisdictions,
