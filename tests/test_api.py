@@ -106,21 +106,23 @@ def test_get_values_all_industries():
 
 def test_get_values_multiple_industries():
     results = rc.get_values(
-        series=9, jurisdiction=58, date=2019, industry=['111', '325', '326']
+        series=9, jurisdiction=58, date=2019, industry=['22', '49', '50']
     )
-    assert order_results(results, 'seriesValue') == [266.73399629061896]
+    assert order_results(results, 'seriesValue') == [
+        50.07550010907289, 649.0292048707197, 811.9319063696239
+    ]
 
 
 def test_get_values_one_industry():
-    results = rc.get_values(
-        series=9, jurisdiction=20, date='2020-06-02',
-        industry='111', summary=False
+    results = rc.get_document_values(
+        series=9, jurisdiction=20, date='2021-06-02', industry='42'
     )
     assert order_results(results, 'seriesValue', descending=True) == [
-        208.5117055773735, 177.00449323654175, 86.01110327243805,
-        76.680001989007, 66.70080256462097, 61.46759942173958,
-        58.94939732551575, 41.14539943635464, 36.53759956359863,
-        33.51419833302498
+        0.9973999857902527, 0.9355999827384949,
+        0.906499981880188, 0.7311000227928162,
+        0.6862999796867371, 0.49320000410079956,
+        0.2345000058412552, 0.21660000085830688,
+        0.21389999985694885, 0.14239999651908875
     ]
 
 
@@ -210,7 +212,7 @@ def test_get_values_error(capsys):
     results = rc.get_values(series=1, jurisdiction=38, date=1900, verbose=1)
     assert not results
     assert capsys.readouterr().out == (
-        'API call: http://ec2-18-214-181-163.compute-1.amazonaws.com/values'
+        'API call: https://api.quantgov.org/values'
         '?series=1&jurisdiction=38&date=1900&documentType=1\n'
         'WARNING: SeriesValue was not found for the specified parameters. '
         'Please check that you have selected the right combination of '
@@ -246,4 +248,4 @@ def test_list_jurisdictions():
 
 def test_list_industries():
     results = rc.list_industries(jurisdictionID=38)
-    assert results['Wood Container and Pallet Manufacturing'] == '321920'
+    assert results['Wood Container and Pallet Manufacturing'] == 1170

@@ -7,7 +7,7 @@ pp = pprint.PrettyPrinter()
 
 date_format = re.compile(r'\d{4}(?:-\d{2}-\d{2})?')
 
-URL = 'http://ec2-18-214-181-163.compute-1.amazonaws.com'
+URL = 'https://api.quantgov.org'
 
 
 def get_values(series, jurisdiction, date, filtered=True, summary=True,
@@ -130,8 +130,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
 
     # Adds country argument if country-level data is requested
     if country:
-        url_call = url_call.replace(
-            '?', '/country?').replace('jurisdiction', 'countries')
+        url_call += '&national=True'
 
     # Adds version argument if different version is requested
     if version:
@@ -331,7 +330,7 @@ def list_industries(jurisdictionID):
     json = requests.get(
         URL + f'/industries?jurisdiction={jurisdictionID}').json()
     return dict(sorted({
-        i["industryName"]: i["industryCode"] for i in json}.items()))
+        i["industryName"]: i["industryID"] for i in json}.items()))
 
 
 def clean_columns(df):
