@@ -105,6 +105,7 @@ The __get_values__ function is the primary function for obtaining RegData from t
 * summary (optional) - specify if summary results should be returned, instead of document-level results. Default is True.
 * country (optional) - specify if all values for a country's jurisdiction ID should be returned. Default is False.
 * industryType (optional): level of NAICS industries to include. Default is '3-Digit'.
+* version (optional): Version ID for datasets with multiple versions, if no ID is given, API returns most recent version
 * download (optional): if not False, a path location for a downloaded csv of the results.
 * verbose (optional) - value specifying how much debugging information should be printed for each function call. Higher number specifies more information, default is 0.
 
@@ -160,11 +161,27 @@ We can request the same data from above, but at the document level, using the fo
 rc.get_values(series = [1,2], jurisdiction = 38, date = ['2010-01-01', '2019-01-01'], summary=False)
 ```
 
+Alternatively, we can use the  __get_document_values__ function as in the following code snippet.
+
+```
+rc.get_document_values(series = [1,2], jurisdiction = 38, date = ['2010-01-01', '2019-01-01'])
+```
+
 Note that for document-level queries, a full date (not just the year) is often required. See the __get_periods__ function for specifics by jurisdiction.
+
+### Version
+
+_This currently applies to the RegData U.S. Annual project only._
+
+As of version 0.2.4, a version parameter can be passed to the __get_values__ function to obtained data from past versions of data (currently only for the RegData U.S. Annual project). Available versions and their associated versionIDs can be obtained by using the __get_version__ function. If no version parameter is given, the most recent version will be returned. The following code snippet will return restrictions data for the 3.2 version of RegData U.S. Annual for the years 2010 to 2019.
+
+```
+rc.get_values(series = 1, jurisdiction = 38, date = [2010, 2019], version = 1)
+```
 
 ### Merging with Metadata
 
-To minimize the network bandwidth requirements to use RegCensusAPI, the data returned by __get_values__ functions contain very minimal metadata. Once you pull the values by __get_values__, you can use the Pandas library to include the metadata.
+To minimize the network bandwidth requirements to use RegCensusAPI, the data returned by __get_values__ function contain very minimal metadata. Once you pull the values by __get_values__, you can use the Pandas library to include the metadata.
 
 Suppose we want to attach the agency names and other agency characteristics to the data from the last code snippet. First be sure to pull the list of agencies into a separate data frame. Then merge with the values data frame. The key for matching the data will be the *agency_id* column.
 

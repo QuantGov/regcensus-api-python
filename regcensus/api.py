@@ -12,7 +12,7 @@ URL = 'https://api.quantgov.org'
 
 def get_values(series, jurisdiction, date, filtered=True, summary=True,
                documentType=1, agency=None, industry=None, dateIsRange=True,
-               country=False, industryType='3-Digit',
+               country=False, industryType='3-Digit', version=None,
                download=False, verbose=0):
     """
     Get values for a specific jurisdition and series
@@ -33,6 +33,8 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         country (optional): Get all values for country ID
         industryType (optional): Level of NAICS industries to include,
             default is '3-Digit'
+        version (optional): Version ID for datasets with multiple versions,
+            if no ID is given, API returns most recent version
         download (optional): If not False, a path location for a
             downloaded csv of the results
         verbose (optional): Print out the url of the API call
@@ -128,8 +130,11 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
 
     # Adds country argument if country-level data is requested
     if country:
-        url_call = url_call.replace(
-            '?', '/country?').replace('jurisdiction', 'countries')
+        url_call += '&national=True'
+
+    # Adds version argument if different version is requested
+    if version:
+        url_call += f'&version={version}'
 
     # Prints the url call if verbosity is flagged
     if verbose:
@@ -149,6 +154,15 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     # Returns clean data if no error
     else:
         return clean_columns(output)
+
+
+def get_document_values(*args, **kwargs):
+    """
+    Get values for a specific jurisdition and series at the document level
+
+    Simply returns get_values() with summary=False
+    """
+    return get_values(*args, **kwargs, summary=False)
 
 
 def get_series(seriesID='', verbose=0):
@@ -250,11 +264,28 @@ def get_documents(jurisdictionID, documentType=1, verbose=0):
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
+def get_versions(jurisdictionID, documentType=1, verbose=0):
+    """
+    Get metadata for versions available in a specific jurisdiction.
+
+    Args:
+        jurisdictionID: ID for the jurisdiction
+        documentType (optional): ID for type of document
+
+    Returns: pandas dataframe with the metadata
+    """
+    url_call = URL + (f'/version?jurisdiction={jurisdictionID}&'
+                      f'documentType={documentType}')
+    if verbose:
+        print(f'API call: {url_call}')
+    return clean_columns(json_normalize(requests.get(url_call).json()))
+
+
 def list_document_types():
     """
     Returns: a dictionary containing names of documenttypes and associated IDs
     """
-    json = requests.get(URL + f'/documenttypes').json()
+    json = requests.get(URL + '/documenttypes').json()
     return dict(sorted({
         d["subtypeName"]: d["documentSubtypeID"]
         for d in json if d["subtypeName"]}.items()))
@@ -264,7 +295,7 @@ def list_series():
     """
     Returns: dictionary containing names of series and associated IDs
     """
-    json = requests.get(URL + f'/series').json()
+    json = requests.get(URL + '/series').json()
     return dict(sorted({s["seriesName"]: s["seriesID"] for s in json}.items()))
 
 
@@ -285,7 +316,7 @@ def list_jurisdictions():
     """
     Returns: dictionary containing names of jurisdictions and associated IDs
     """
-    json = requests.get(URL + f'/jurisdictions').json()
+    json = requests.get(URL + '/jurisdictions').json()
     return dict(sorted({
         j["jurisdictionName"]: j["jurisdictionID"] for j in json}.items()))
 
@@ -299,7 +330,7 @@ def list_industries(jurisdictionID):
     json = requests.get(
         URL + f'/industries?jurisdiction={jurisdictionID}').json()
     return dict(sorted({
-        i["industryName"]: i["industryCode"] for i in json}.items()))
+        i["industryName"]: i["industryID"] for i in json}.items()))
 
 
 def clean_columns(df):

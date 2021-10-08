@@ -15,11 +15,9 @@ def order_results(results, column, descending=False):
 def test_get_series():
     results = rc.get_series(verbose=1)
     assert order_results(results, 'seriesCode') == [
-        'NY.GDP.MKTP.CD', 'NY.GDP.MKTP.CD', 'NY.GDP.MKTP.KD',
-        'NY.GDP.MKTP.KD', 'NY.GDP.MKTP.KD.ZG', 'NY.GDP.MKTP.KD.ZG',
-        'NY.GDP.PCAP.KD.ZG', 'NY.GDP.PCAP.KD.ZG', 'RG_DRST0000001A',
-        'RG_HLC1000002A'
-    ]
+        'FRASE001', 'FRASE002', 'HC_THRESH', 'OL_THRESH',
+        'Placeholder', 'Placeholder', 'Placeholder',
+        'Placeholder', 'Placeholder', 'Placeholder']
 
 
 def test_get_agencies():
@@ -38,22 +36,21 @@ def test_get_jurisdictions():
 
 def test_get_periods():
     results = rc.get_periods(38, documentType=1, verbose=1)
-    assert order_results(results, 'recordsAvailable', descending=True) == [
-        30696278, 30696278, 30696278, 30696278, 30696278,
-        30696278, 30696278, 30696278, 30696278, 30696278
-    ]
+    assert order_results(results, 'recordsAvailable', descending=True) == (
+        [37004219] * 10
+    )
 
 
 def test_get_periods_one_series():
     results = rc.get_periods(20, documentType=1, seriesID=29, verbose=1)
-    assert order_results(results, 'recordsAvailable') == [13]
+    assert order_results(results, 'recordsAvailable') == [19844, 19844]
 
 
 def test_get_industries():
     results = rc.get_industries(jurisdictionID=38, verbose=1)
     assert order_results(results, 'industryCode') == [
-        '0', '11', '111', '1111', '11111', '111110',
-        '11112', '111120', '11113', '111130'
+        '0', '10', '11', '11', '111', '1111',
+        '11111', '111110', '11112', '111120'
     ]
 
 
@@ -65,11 +62,21 @@ def test_get_documents():
     ]
 
 
+def test_get_document_values():
+    results = rc.get_document_values(
+        series=[1, 2], jurisdiction=20, date='2020-06-02', verbose=1
+    )
+    assert order_results(results, 'seriesValue', descending=True) == [
+        1958601.0, 466414.0, 248869.0, 236149.0, 133169.0,
+        103682.0, 98257.0, 90961.0, 90862.0, 90758.0
+    ]
+
+
 def test_get_values_multiple_series():
     results = rc.get_values(
         series=[1, 2], jurisdiction=38, date=1970, verbose=1
     )
-    assert order_results(results, 'seriesValue') == [405647.0, 35420432.0]
+    assert order_results(results, 'seriesValue') == [409520.0, 33588985.0]
 
 
 def test_get_values_incorrect_series(capsys):
@@ -99,23 +106,23 @@ def test_get_values_all_industries():
 
 def test_get_values_multiple_industries():
     results = rc.get_values(
-        series=9, jurisdiction=58, date=2019, industry=['111', '325', '326']
+        series=9, jurisdiction=58, date=2019, industry=['22', '49', '50']
     )
     assert order_results(results, 'seriesValue') == [
-        255.2682025779941, 649.0292048707197, 1858.660280573211
+        50.07550010907289, 649.0292048707197, 811.9319063696239
     ]
 
 
 def test_get_values_one_industry():
-    results = rc.get_values(
-        series=9, jurisdiction=20, date='2020-06-02',
-        industry='111', summary=False
+    results = rc.get_document_values(
+        series=9, jurisdiction=20, date='2021-06-02', industry='42'
     )
     assert order_results(results, 'seriesValue', descending=True) == [
-        208.5117055773735, 177.00449323654175, 86.01110327243805,
-        76.680001989007, 66.70080256462097, 61.46759942173958,
-        58.94939732551575, 41.14539943635464, 36.53759956359863,
-        33.51419833302498
+        0.9973999857902527, 0.9355999827384949,
+        0.906499981880188, 0.7311000227928162,
+        0.6862999796867371, 0.49320000410079956,
+        0.2345000058412552, 0.21660000085830688,
+        0.21389999985694885, 0.14239999651908875
     ]
 
 
@@ -128,8 +135,8 @@ def test_get_values_incorrect_jurisdiction(capsys):
 def test_get_values_date_range():
     results = rc.get_values(series=1, jurisdiction=38, date=[1970, 2019])
     assert order_results(results, 'seriesValue') == [
-        405647.0, 416532.0, 452114.0, 470561.0, 500133.0,
-        524992.0, 548579.0, 572123.0, 581408.0, 615181.0
+        409520.0, 420478.0, 456373.0, 475121.0, 505136.0,
+        530148.0, 554052.0, 579879.0, 590779.0, 625123.0
     ]
 
 
@@ -138,7 +145,7 @@ def test_get_values_multiple_dates():
         series=1, jurisdiction=38, date=[1970, 1980, 1990, 2000]
     )
     assert order_results(results, 'seriesValue') == [
-        405647.0, 633754.0, 772537.0, 853661.0
+        409520.0, 643935.0, 786512.0, 853667.0
     ]
 
 
@@ -174,7 +181,14 @@ def test_get_values_multiple_agencies():
     results = rc.get_values(
         series=13, jurisdiction=38, date=2019, agency=[111, 99]
     )
-    assert order_results(results, 'seriesValue') == [34167.0, 91227.0]
+    assert order_results(results, 'seriesValue') == [34167.0, 91087.0]
+
+
+def test_get_values_version():
+    results = rc.get_values(
+        series=1, jurisdiction=38, date=2019, version=1, verbose=1
+    )
+    assert order_results(results, 'seriesValue') == [1078213.0]
 
 
 def test_get_values_download():
@@ -198,26 +212,28 @@ def test_get_values_error(capsys):
     results = rc.get_values(series=1, jurisdiction=38, date=1900, verbose=1)
     assert not results
     assert capsys.readouterr().out == (
+        'API call: https://api.quantgov.org/values'
+        '?series=1&jurisdiction=38&date=1900&documentType=1\n'
         'WARNING: SeriesValue was not found for the specified parameters. '
         'Please check that you have selected the right combination of '
-        'parameters.  When in doubt, please use the /periods endpoint to '
-        'find out the combinations of series, jurisdiction, periods, '
-        'agencies, document types for which there are data available.'
-        '{parameters={jurisdiction=[US_UNITED_STATES], date=[1900], '
-        'industry=null, agency=null, dateIsRange=false, filteredOnly=true, '
-        'summary=true, series=[SERIES_1], documentType=ALL_REGULATIONS, '
-        'documentID=null}}\n'
+        'parameters.  When in doubt, please use the /periods endpoint to find '
+        'out the combinations of series, jurisdiction, periods, agencies, '
+        'document types for which there are data available.{parameters='
+        '{jurisdiction=[US_UNITED_STATES], date=[1900], industry=null, '
+        'agency=null, dateIsRange=false, filteredOnly=true, '
+        'series=[SERIES_1], documentType=REGULATION_TEXT_ALL_REGULATIONS, '
+        'documentID=null, national=false}}\n'
     )
 
 
 def test_list_document_types():
     results = rc.list_document_types()
-    assert results['Regulation text: All regulations'] == 1
+    assert results['Regulation text All regulations'] == 1
 
 
 def test_list_series():
     results = rc.list_series()
-    assert results['Complexity: Conditionals analysis'] == 53
+    assert results['Complexity Conditionals'] == 53
 
 
 def test_list_agencies():
@@ -232,4 +248,4 @@ def test_list_jurisdictions():
 
 def test_list_industries():
     results = rc.list_industries(jurisdictionID=38)
-    assert results['Wood Container and Pallet Manufacturing'] == '321920'
+    assert results['Wood Container and Pallet Manufacturing'] == 1170
