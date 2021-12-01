@@ -172,9 +172,7 @@ def get_series(jurisdictionID=None, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = URL + '/series'
-    if jurisdictionID:
-        url_call += f'?jurisdiction={jurisdictionID}'
+    url_call = series_url(jurisdictionID)
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
@@ -188,14 +186,8 @@ def get_agencies(jurisdictionID=None, keyword=None, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    if keyword:
-        url_call = URL + (f'/agencies/keyword?'
-                          f'keyword={keyword}')
-    elif jurisdictionID:
-        url_call = URL + (f'/agencies/jurisdictions?'
-                          f'jurisdiction={jurisdictionID}')
-    else:
-        print('Must include either "jurisdictionID" or "keyword."')
+    url_call = agency_url(jurisdictionID, keyword)
+    if not url_call:
         return
     if verbose:
         print(f'API call: {url_call}')
@@ -210,15 +202,13 @@ def get_jurisdictions(jurisdictionID=None, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = URL + '/jurisdictions/'
-    if jurisdictionID:
-        url_call += f'/specific?jurisdiction={jurisdictionID}'
+    url_call = jurisdictions_url(jurisdictionID)
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_industries(keyword=None, codeLevel=3, verbose=0):
+def get_industries(keyword=None, codeLevel=3, standard=None, verbose=0):
     """
     Get metadata for all industries available in a specific jurisdiction
 
@@ -226,12 +216,7 @@ def get_industries(keyword=None, codeLevel=3, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    if keyword:
-        url_call = (
-            URL + f'/industries/keyword?'
-                  f'codeLevel={codeLevel}&keyword={keyword}')
-    else:
-        url_call = URL + f'/industries?codeLevel={codeLevel}'
+    url_call = industries_url(keyword, codeLevel, standard)
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
@@ -282,11 +267,12 @@ def list_document_types():
         for d in json if d["subtypeName"]}.items()))
 
 
-def list_series():
+def list_series(jurisdictionID=None):
     """
     Returns: dictionary containing names of series and associated IDs
     """
-    json = requests.get(URL + '/series').json()
+    url_call = series_url(jurisdictionID)
+    json = requests.get(url_call).json()
     return dict(sorted({
         s["series"]["seriesName"]: s["series"]["seriesID"]
         for s in json}.items()))
@@ -298,16 +284,10 @@ def list_agencies(jurisdictionID=None, keyword=None):
 
     Returns: dictionary containing names of agencies and associated IDs
     """
-    if keyword:
-        json = requests.get(
-            URL + (f'/agencies/keyword?keyword={keyword}')).json()
-    elif jurisdictionID:
-        json = requests.get(
-            URL + (f'/agencies/jurisdictions?jurisdiction={jurisdictionID}')
-        ).json()
-    else:
-        print('Must include either "jurisdictionID" or "keyword."')
+    url_call = agency_url(jurisdictionID, keyword)
+    if not url_call:
         return
+    json = requests.get(url_call).json()
     return dict(sorted({
         a["agencyName"]: a["agencyID"]
         for a in json if a["agencyName"]}.items()))
@@ -317,26 +297,65 @@ def list_jurisdictions():
     """
     Returns: dictionary containing names of jurisdictions and associated IDs
     """
-    json = requests.get(URL + '/jurisdictions').json()
+    url_call = jurisdictions_url(None)
+    json = requests.get(url_call).json()
     return dict(sorted({
         j["jurisdictionName"]: j["jurisdictionID"] for j in json}.items()))
 
 
-def list_industries(keyword=None, codeLevel=3):
+def list_industries(keyword=None, codeLevel=3, standard=None):
     """
     Args: jurisdictionID: ID for the jurisdiction
 
     Returns: dictionary containing names of industries and their NAICS codes
     """
-    if keyword:
-        json = requests.get(
-            URL + f'/industries/keyword?codeLevel={codeLevel}'
-                  f'&keyword={keyword}').json()
-    else:
-        json = requests.get(
-            URL + f'/industries?codeLevel={codeLevel}').json()
+    url_call = industries_url(keyword, codeLevel, standard)
+    json = requests.get(url_call).json()
     return dict(sorted({
         i["industryName"]: i["industryID"] for i in json}.items()))
+
+
+def series_url(jurisdictionID):
+    """Gets url call for series endpoint."""
+    url_call = URL + '/series'
+    if jurisdictionID:
+        url_call += f'?jurisdiction={jurisdictionID}'
+    return url_call
+
+
+def agency_url(jurisdictionID, keyword):
+    """Gets url call for agencies endpoint."""
+    if keyword:
+        url_call = URL + (f'/agencies/keyword?'
+                          f'keyword={keyword}')
+    elif jurisdictionID:
+        url_call = URL + (f'/agencies/jurisdictions?'
+                          f'jurisdiction={jurisdictionID}')
+    else:
+        print('Must include either "jurisdictionID" or "keyword."')
+        return
+    return url_call
+
+
+def jurisdictions_url(jurisdictionID):
+    """Gets url call for jurisdictions endpoint."""
+    url_call = URL + '/jurisdictions/'
+    if jurisdictionID:
+        url_call += f'/specific?jurisdiction={jurisdictionID}'
+    return url_call
+
+
+def industries_url(keyword, codeLevel, standard):
+    """Gets url call for industries endpoint."""
+    if keyword:
+        url_call = (
+            URL + f'/industries/keyword?'
+                  f'codeLevel={codeLevel}&keyword={keyword}')
+    else:
+        url_call = URL + f'/industries?codeLevel={codeLevel}'
+    if standard:
+        url_call += f'&standard={standard}'
+    return url_call
 
 
 def clean_columns(df):

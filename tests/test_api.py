@@ -33,7 +33,7 @@ def test_get_agencies_keyword():
 def test_get_jurisdictions():
     results = rc.get_jurisdictions(verbose=1)
     assert order_results(results, 'jurisdictionID') == [
-        2, 4, 10, 11, 14, 15, 17, 20, 23, 24
+        0, 2, 4, 10, 11, 14, 15, 17, 20, 23
     ]
 
 
@@ -89,16 +89,17 @@ def test_get_values_multiple_jurisdictions():
     assert order_results(results, 'seriesValue') == [52569.0, 107063.0]
 
 
-'''def test_get_values_all_industries():
+def test_get_values_all_industries():
     results = rc.get_values(
         series=9, jurisdiction=58, date=2019, filtered=False
     )
-    assert order_results(results, 'seriesValue') == [
-        16.487800191811402, 28.080800290597836, 32.408500283963804,
-        36.27130037093593, 36.53810011051246, 36.72170047096006,
-        40.113500030507566, 44.19190023323608, 45.02970027324045,
-        48.842899827621295
-    ]'''
+    assert order_results(results, 'seriesValue', descending=True) == [
+        2399.6540837686553, 2346.9849032768325,
+        2231.579487334733, 1910.4039869066692,
+        1858.660280573211, 1845.9105216636453,
+        1756.3024117016612, 1272.998498038447,
+        1214.762196061427, 1155.1694051386294
+    ]
 
 
 def test_get_values_multiple_industries():
@@ -110,7 +111,7 @@ def test_get_values_multiple_industries():
     ]
 
 
-def test_get_values_one_industry():
+'''def test_get_values_one_industry():
     results = rc.get_document_values(
         series=9, jurisdiction=20, date='2021-06-02', industry='42'
     )
@@ -120,7 +121,7 @@ def test_get_values_one_industry():
         0.6862999796867371, 0.49320000410079956,
         0.2345000058412552, 0.21660000085830688,
         0.21389999985694885, 0.14239999651908875
-    ]
+    ]'''
 
 
 def test_get_values_incorrect_jurisdiction(capsys):
