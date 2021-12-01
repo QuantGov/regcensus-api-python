@@ -11,6 +11,8 @@ def order_results(results, column, descending=False):
 
 
 # TEST FUNCTIONS
+
+# Tests for get_() functions
 def test_get_series():
     results = rc.get_series(verbose=1)
     assert order_results(results, 'seriesID') == [1] * 10
@@ -72,6 +74,7 @@ def test_get_versions():
     ]
 
 
+# Tests for get_values()
 def test_get_document_values():
     results = rc.get_document_values(
         series=[1, 2], jurisdiction=20, date='2020-06-02', verbose=1
@@ -238,6 +241,7 @@ def test_get_values_error(capsys):
     )
 
 
+# Tests for list_() functions
 def test_list_document_types():
     results = rc.list_document_types()
     assert results['Regulation text All regulations'] == 1

@@ -23,21 +23,23 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         date: Year(s) of data
         summary (optional): Return summary instead of document level data
         filtered (optional): Exclude poorly-performing industry results
+            (use of unfiltered results is NOT recommended)
         documentType (optional): ID for type of document
-        agency (optional): Agency ID (use 'all' for all agencies,
-            only works for a single jurisdiction)
+        agency (optional): Agency ID (if no ID is passed and the series
+            contains agency data, returns data for all agencies)
         industry (optional): Industry code using the jurisdiction-specific
             coding system (returns all 3-digit industries by default)
         dateIsRange (optional): Indicating whether the time parameter is range
             or should be treated as single data points
-        country (optional): Get all values for country ID
-        industryType (optional): Level of NAICS industries to include,
-            default is '3'
-        version (optional): Version ID for datasets with multiple versions,
-            if no ID is given, API returns most recent version
+        country (optional): Get values for all subjurisdictions
+        industryLevel (optional): Level of NAICS industries to include
+            (default is 3)
+        version (optional): Version ID for datasets with multiple versions
+            (if no ID is given, returns most recent version)
         download (optional): If not False, a path location for a
             downloaded csv of the results
         verbose (optional): Print out the url of the API call
+            (useful for debugging)
 
     Returns: pandas dataframe with the values and various metadata
 
