@@ -1,4 +1,3 @@
-import pytest
 import os
 import regcensus as rc
 
@@ -14,16 +13,20 @@ def order_results(results, column, descending=False):
 # TEST FUNCTIONS
 def test_get_series():
     results = rc.get_series(verbose=1)
-    assert order_results(results, 'seriesCode') == [
-        'FRASE001', 'FRASE002', 'HC_THRESH', 'OL_THRESH',
-        'Placeholder', 'Placeholder', 'Placeholder',
-        'Placeholder', 'Placeholder', 'Placeholder']
+    assert order_results(results, 'seriesID') == [1] * 10
 
 
 def test_get_agencies():
-    results = rc.get_agencies(38, verbose=1)
+    results = rc.get_agencies(jurisdictionID=38, verbose=1)
     assert order_results(results, 'agencyID') == [
-        64, 65, 66, 67, 68, 70, 71, 72, 73, 74
+        0, 1, 64, 65, 66, 67, 68, 69, 70, 71
+    ]
+
+
+def test_get_agencies_keyword():
+    results = rc.get_agencies(keyword='Education', verbose=1)
+    assert order_results(results, 'agencyID') == [
+        225, 348, 375, 403, 475, 521, 539, 572, 595, 603
     ]
 
 
@@ -34,23 +37,17 @@ def test_get_jurisdictions():
     ]
 
 
-def test_get_periods():
-    results = rc.get_periods(38, documentType=1, verbose=1)
-    assert order_results(results, 'recordsAvailable', descending=True) == (
-        [37004219] * 10
-    )
-
-
-def test_get_periods_one_series():
-    results = rc.get_periods(20, documentType=1, seriesID=29, verbose=1)
-    assert order_results(results, 'recordsAvailable') == [19844, 19844]
-
-
 def test_get_industries():
-    results = rc.get_industries(jurisdictionID=38, verbose=1)
+    results = rc.get_industries(verbose=1)
     assert order_results(results, 'industryCode') == [
-        '0', '10', '11', '11', '111', '1111',
-        '11111', '111110', '11112', '111120'
+        '0', '111', '112', '114', '115', '211', '212', '213', '221', '236'
+    ]
+
+
+def test_get_industries_keyword():
+    results = rc.get_industries(keyword='Fishing', codeLevel=6, verbose=1)
+    assert order_results(results, 'industryCode') == [
+        '114111', '114112', '114119'
     ]
 
 
@@ -62,14 +59,14 @@ def test_get_documents():
     ]
 
 
-def test_get_document_values():
+'''def test_get_document_values():
     results = rc.get_document_values(
         series=[1, 2], jurisdiction=20, date='2020-06-02', verbose=1
     )
     assert order_results(results, 'seriesValue', descending=True) == [
         1958601.0, 466414.0, 248869.0, 236149.0, 133169.0,
         103682.0, 98257.0, 90961.0, 90862.0, 90758.0
-    ]
+    ]'''
 
 
 def test_get_values_multiple_series():
@@ -92,16 +89,16 @@ def test_get_values_multiple_jurisdictions():
     assert order_results(results, 'seriesValue') == [52569.0, 107063.0]
 
 
-def test_get_values_all_industries():
+'''def test_get_values_all_industries():
     results = rc.get_values(
-        series=9, jurisdiction=58, date=2019, industry='all', filtered=False
+        series=9, jurisdiction=58, date=2019, filtered=False
     )
     assert order_results(results, 'seriesValue') == [
         16.487800191811402, 28.080800290597836, 32.408500283963804,
         36.27130037093593, 36.53810011051246, 36.72170047096006,
         40.113500030507566, 44.19190023323608, 45.02970027324045,
         48.842899827621295
-    ]
+    ]'''
 
 
 def test_get_values_multiple_industries():
@@ -168,13 +165,13 @@ def test_get_values_agency():
     assert order_results(results, 'seriesValue') == [62.0]
 
 
-def test_get_values_all_agencies():
+'''def test_get_values_all_agencies():
     results = rc.get_values(
         series=13, jurisdiction=38, date=2019, agency='all'
     )
     assert order_results(results, 'seriesValue') == [
         0.0, 0.0, 1.0, 1.0, 5.0, 18.0, 33.0, 34.0, 50.0, 59.0
-    ]
+    ]'''
 
 
 def test_get_values_multiple_agencies():
@@ -237,8 +234,20 @@ def test_list_series():
 
 
 def test_list_agencies():
-    results = rc.list_agencies(38)
+    results = rc.list_agencies(jurisdictionID=38)
     assert results['Administrative Conference of the United States'] == 195
+
+
+def test_list_agencies_keyword():
+    results = rc.list_agencies(keyword='Education')
+    assert results['California Department of Education'] == 770
+
+
+def test_list_agencies_error(capsys):
+    results = rc.list_agencies()
+    assert not results
+    assert capsys.readouterr().out == (
+        'Must include either "jurisdictionID" or "keyword."\n')
 
 
 def test_list_jurisdictions():
@@ -247,5 +256,10 @@ def test_list_jurisdictions():
 
 
 def test_list_industries():
-    results = rc.list_industries(jurisdictionID=38)
+    results = rc.list_industries(codeLevel=6)
     assert results['Wood Container and Pallet Manufacturing'] == 1170
+
+
+def test_list_industries_keyword():
+    results = rc.list_industries(codeLevel=4, keyword='fishing')
+    assert results['Fishing'] == 126

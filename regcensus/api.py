@@ -7,12 +7,12 @@ pp = pprint.PrettyPrinter()
 
 date_format = re.compile(r'\d{4}(?:-\d{2}-\d{2})?')
 
-URL = 'https://api.quantgov.org'
+URL = 'http://ec2-54-156-9-159.compute-1.amazonaws.com:8080'
 
 
 def get_values(series, jurisdiction, date, filtered=True, summary=True,
                documentType=1, agency=None, industry=None, dateIsRange=True,
-               country=False, industryType='3-Digit', version=None,
+               country=False, industryLevel=3, version=None,
                download=False, verbose=0):
     """
     Get values for a specific jurisdition and series
@@ -27,12 +27,12 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         agency (optional): Agency ID (use 'all' for all agencies,
             only works for a single jurisdiction)
         industry (optional): Industry code using the jurisdiction-specific
-            coding system (use 'all' for all industries)
+            coding system (returns all 3-digit industries by default)
         dateIsRange (optional): Indicating whether the time parameter is range
             or should be treated as single data points
         country (optional): Get all values for country ID
         industryType (optional): Level of NAICS industries to include,
-            default is '3-Digit'
+            default is '3'
         version (optional): Version ID for datasets with multiple versions,
             if no ID is given, API returns most recent version
         download (optional): If not False, a path location for a
@@ -46,9 +46,10 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
 
     # If multiple series are given, parses the list into a string
     if type(series) == list:
-        url_call = (URL + f'/values?series={",".join(str(i) for i in series)}')
+        url_call = (
+            URL + f'/summary?series={",".join(str(i) for i in series)}')
     elif type(series) in [int, str]:
-        url_call = URL + f'/values?series={series}'
+        url_call = URL + f'/summary?series={series}'
     # If no appropriate series is given, prints warning message and
     # list of available series, and function returns empty.
     else:
@@ -77,16 +78,14 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     elif agency:
         url_call += f'&agency={agency}'
 
-    # Allows for all industry data to be returned
-    if str(industry).lower() == 'all':
-        url_call = url_call.replace('?', '/industryTypes?').replace(
-            'jurisdiction', 'jurisdictions')
-        url_call += f'&industryType={industryType}'
     # If multiple industries are given, parses the list into a string
-    elif type(industry) == list:
+    if type(industry) == list:
         url_call += f'&industry={",".join(str(i) for i in industry)}'
     elif industry:
         url_call += f'&industry={industry}'
+    # Specify level of industry (NAICS only)
+    if industryLevel:
+        url_call += f'&industryLevel={industryLevel}'
 
     # If multiple dates are given, parses the list into a string
     if type(date) == list:
@@ -104,7 +103,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     # and function returns empty.
     else:
         print("Valid date is required.")
-        pp.pprint(get_periods(jurisdiction, documentType=3))
+        pp.pprint(get_series(jurisdiction))
         return
 
     if dateIsRange:
@@ -116,7 +115,7 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         if industry:
             print('WARNING: Returning document-level industry results. '
                   'This query make take several minutes.')
-        url_call = url_call.replace('/values', '/values/documents')
+        url_call = url_call.replace('/summary', '/documents')
 
     # Allows for unfiltered industry results to be retrieved. Includes
     # warning message explaining that these results should not be trusted.
@@ -165,21 +164,23 @@ def get_document_values(*args, **kwargs):
     return get_values(*args, **kwargs, summary=False)
 
 
-def get_series(seriesID='', verbose=0):
+def get_series(jurisdictionID=None, verbose=0):
     """
-    Get metadata for all or one specific series
+    Get series and date metadata for all or one specific jurisdiction
 
-    Args: seriesID (optional): ID for the series
+    Args: jurisdictionID (optional): ID for the jurisdiction
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = URL + f'/series/{seriesID}'
+    url_call = URL + '/series'
+    if jurisdictionID:
+        url_call += f'?jurisdiction={jurisdictionID}'
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_agencies(jurisdictionID, verbose=0):
+def get_agencies(jurisdictionID=None, keyword=None, verbose=0):
     """
     Get metadata for all agencies of a specific jurisdiction
 
@@ -187,14 +188,21 @@ def get_agencies(jurisdictionID, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = URL + (f'/agencies/jurisdiction?'
-                      f'jurisdictions={jurisdictionID}')
+    if keyword:
+        url_call = URL + (f'/agencies/keyword?'
+                          f'keyword={keyword}')
+    elif jurisdictionID:
+        url_call = URL + (f'/agencies/jurisdictions?'
+                          f'jurisdiction={jurisdictionID}')
+    else:
+        print('Must include either "jurisdictionID" or "keyword."')
+        return
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_jurisdictions(jurisdictionID='', verbose=0):
+def get_jurisdictions(jurisdictionID=None, verbose=0):
     """
     Get metadata for all or one specific jurisdiction
 
@@ -202,37 +210,15 @@ def get_jurisdictions(jurisdictionID='', verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = URL + f'/jurisdictions/{jurisdictionID}'
+    url_call = URL + '/jurisdictions/'
+    if jurisdictionID:
+        url_call += f'/specific?jurisdiction={jurisdictionID}'
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_periods(jurisdictionID, documentType, seriesID='', verbose=0):
-    """
-    Get dates available for all or one specific series for a jurisdiction
-
-    Args:
-        jurisdictionID: ID for the jurisdiction
-        documentType: document type (regulations, statutes, etc.),
-            see list_document_types()
-        seriesID (optional): ID for the series
-
-    Returns: pandas dataframe with the dates
-    """
-    if seriesID:
-        url_call = (URL + (f'/periods?jurisdiction={jurisdictionID}&'
-                           f'series={seriesID}&'
-                           f'documentType={documentType}'))
-    else:
-        url_call = (URL + (f'/periods?jurisdiction={jurisdictionID}&'
-                           f'documentType={documentType}'))
-    if verbose:
-        print(f'API call: {url_call}')
-    return clean_columns(json_normalize(requests.get(url_call).json()))
-
-
-def get_industries(jurisdictionID, verbose=0):
+def get_industries(keyword=None, codeLevel=3, verbose=0):
     """
     Get metadata for all industries available in a specific jurisdiction
 
@@ -240,7 +226,12 @@ def get_industries(jurisdictionID, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = URL + f'/industries?jurisdiction={jurisdictionID}'
+    if keyword:
+        url_call = (
+            URL + f'/industries/keyword?'
+                  f'codeLevel={codeLevel}&keyword={keyword}')
+    else:
+        url_call = URL + f'/industries?codeLevel={codeLevel}'
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
@@ -257,7 +248,7 @@ def get_documents(jurisdictionID, documentType=1, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = URL + (f'/documents?jurisdiction={jurisdictionID}&'
+    url_call = URL + (f'/documentMetadata?jurisdiction={jurisdictionID}&'
                       f'documentType={documentType}')
     if verbose:
         print(f'API call: {url_call}')
@@ -296,17 +287,27 @@ def list_series():
     Returns: dictionary containing names of series and associated IDs
     """
     json = requests.get(URL + '/series').json()
-    return dict(sorted({s["seriesName"]: s["seriesID"] for s in json}.items()))
+    return dict(sorted({
+        s["series"]["seriesName"]: s["series"]["seriesID"]
+        for s in json}.items()))
 
 
-def list_agencies(jurisdictionID):
+def list_agencies(jurisdictionID=None, keyword=None):
     """
     Args: jurisdictionID: ID for the jurisdiction
 
     Returns: dictionary containing names of agencies and associated IDs
     """
-    json = requests.get(
-        URL + f'/agencies/jurisdiction?jurisdictions={jurisdictionID}').json()
+    if keyword:
+        json = requests.get(
+            URL + (f'/agencies/keyword?keyword={keyword}')).json()
+    elif jurisdictionID:
+        json = requests.get(
+            URL + (f'/agencies/jurisdictions?jurisdiction={jurisdictionID}')
+        ).json()
+    else:
+        print('Must include either "jurisdictionID" or "keyword."')
+        return
     return dict(sorted({
         a["agencyName"]: a["agencyID"]
         for a in json if a["agencyName"]}.items()))
@@ -321,14 +322,19 @@ def list_jurisdictions():
         j["jurisdictionName"]: j["jurisdictionID"] for j in json}.items()))
 
 
-def list_industries(jurisdictionID):
+def list_industries(keyword=None, codeLevel=3):
     """
     Args: jurisdictionID: ID for the jurisdiction
 
     Returns: dictionary containing names of industries and their NAICS codes
     """
-    json = requests.get(
-        URL + f'/industries?jurisdiction={jurisdictionID}').json()
+    if keyword:
+        json = requests.get(
+            URL + f'/industries/keyword?codeLevel={codeLevel}'
+                  f'&keyword={keyword}').json()
+    else:
+        json = requests.get(
+            URL + f'/industries?codeLevel={codeLevel}').json()
     return dict(sorted({
         i["industryName"]: i["industryID"] for i in json}.items()))
 
