@@ -30,11 +30,16 @@ def test_get_agencies_keyword():
     ]
 
 
+def test_get_agencies_error(capsys):
+    results = rc.get_agencies()
+    assert not results
+    assert capsys.readouterr().out == (
+        'Must include either "jurisdictionID" or "keyword."\n')
+
+
 def test_get_jurisdictions():
-    results = rc.get_jurisdictions(verbose=1)
-    assert order_results(results, 'jurisdictionID') == [
-        0, 2, 4, 10, 11, 14, 15, 17, 20, 23
-    ]
+    results = rc.get_jurisdictions(38, verbose=1)
+    assert order_results(results, 'jurisdictionID') == [38]
 
 
 def test_get_industries():
@@ -59,14 +64,22 @@ def test_get_documents():
     ]
 
 
-'''def test_get_document_values():
+def test_get_versions():
+    results = rc.get_versions(38, verbose=1)
+    assert order_results(results, 'sourceName') == [
+        'Occupation Data (dataset)', 'Occupation Data (dataset)',
+        'RegData US 3.2 Annual (dataset)', 'RegData US 4.0 Annual (dataset)'
+    ]
+
+
+def test_get_document_values():
     results = rc.get_document_values(
         series=[1, 2], jurisdiction=20, date='2020-06-02', verbose=1
     )
     assert order_results(results, 'seriesValue', descending=True) == [
         1958601.0, 466414.0, 248869.0, 236149.0, 133169.0,
         103682.0, 98257.0, 90961.0, 90862.0, 90758.0
-    ]'''
+    ]
 
 
 def test_get_values_multiple_series():
@@ -111,7 +124,7 @@ def test_get_values_multiple_industries():
     ]
 
 
-'''def test_get_values_one_industry():
+def test_get_values_one_industry():
     results = rc.get_document_values(
         series=9, jurisdiction=20, date='2021-06-02', industry='42'
     )
@@ -121,7 +134,7 @@ def test_get_values_multiple_industries():
         0.6862999796867371, 0.49320000410079956,
         0.2345000058412552, 0.21660000085830688,
         0.21389999985694885, 0.14239999651908875
-    ]'''
+    ]
 
 
 def test_get_values_incorrect_jurisdiction(capsys):
@@ -150,7 +163,8 @@ def test_get_values_multiple_dates():
 def test_get_values_incorrect_dates(capsys):
     results = rc.get_values(series=1, jurisdiction=38, date=None)
     assert not results
-    assert capsys.readouterr().out == 'Valid date is required.\n'
+    assert capsys.readouterr().out == (
+        'Valid date is required. Select from the following list:\n')
 
 
 def test_get_values_country():
@@ -166,13 +180,13 @@ def test_get_values_agency():
     assert order_results(results, 'seriesValue') == [62.0]
 
 
-'''def test_get_values_all_agencies():
+def test_get_values_all_agencies():
     results = rc.get_values(
-        series=13, jurisdiction=38, date=2019, agency='all'
+        series=13, jurisdiction=38, date=2019
     )
     assert order_results(results, 'seriesValue') == [
         0.0, 0.0, 1.0, 1.0, 5.0, 18.0, 33.0, 34.0, 50.0, 59.0
-    ]'''
+    ]
 
 
 def test_get_values_multiple_agencies():
@@ -264,3 +278,8 @@ def test_list_industries():
 def test_list_industries_keyword():
     results = rc.list_industries(codeLevel=4, keyword='fishing')
     assert results['Fishing'] == 126
+
+
+def test_list_bea_industries():
+    results = rc.list_industries(standard='BEA')
+    assert results['Accommodation and food services (BEA)'] == 1974

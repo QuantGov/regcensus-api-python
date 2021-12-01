@@ -69,9 +69,6 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
         pp.pprint(list_jurisdictions())
         return
 
-    # Allows for all agency data to be returned
-    if str(agency).lower() == 'all':
-        agency = list(list_agencies(jurisdiction).values())
     # If multiple agencies are given, parses the list into a string
     if type(agency) == list:
         url_call += f'&agency={",".join(str(i) for i in agency)}'
@@ -102,8 +99,9 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     # list of available dates for the given jurisdiction(s),
     # and function returns empty.
     else:
-        print("Valid date is required.")
-        pp.pprint(get_series(jurisdiction))
+        print("Valid date is required. Select from the following list:")
+        dates = sorted(get_series(jurisdiction)['periodCode'].unique())
+        pp.pprint(dates)
         return
 
     if dateIsRange:
