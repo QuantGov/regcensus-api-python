@@ -212,7 +212,10 @@ def get_industries(keyword=None, codeLevel=3, standard=None, verbose=0):
     """
     Get metadata for all industries available in a specific jurisdiction
 
-    Args: jurisdictionID: ID for the jurisdiction
+    Args:
+        keyword: search for keyword in industry name
+        codeLevel: NAICS level (2 to 6-digit)
+        standard: classification standard (NAICS, BEA, SOC)
 
     Returns: pandas dataframe with the metadata
     """
@@ -269,6 +272,8 @@ def list_document_types():
 
 def list_series(jurisdictionID=None):
     """
+    Args: jurisdictionID (optional): ID for the jurisdiction
+
     Returns: dictionary containing names of series and associated IDs
     """
     url_call = series_url(jurisdictionID)
@@ -280,7 +285,9 @@ def list_series(jurisdictionID=None):
 
 def list_agencies(jurisdictionID=None, keyword=None):
     """
-    Args: jurisdictionID: ID for the jurisdiction
+    Args:
+        jurisdictionID: ID for the jurisdiction
+        keyword: search for keyword in agency name
 
     Returns: dictionary containing names of agencies and associated IDs
     """
@@ -303,16 +310,30 @@ def list_jurisdictions():
         j["jurisdictionName"]: j["jurisdictionID"] for j in json}.items()))
 
 
-def list_industries(keyword=None, codeLevel=3, standard=None):
+def list_industries(keyword=None, codeLevel=3, standard='NAICS', onlyID=False):
     """
-    Args: jurisdictionID: ID for the jurisdiction
+    Args:
+        keyword: search for keyword in industry name
+        codeLevel: NAICS level (2 to 6-digit)
+        standard: classification standard (NAICS (default), BEA, SOC)
+        onlyID: uses the NAICS code instead of name as key of dictionary
 
-    Returns: dictionary containing names of industries and their NAICS codes
+    Returns: dictionary containing names of industries and associated IDs
     """
     url_call = industries_url(keyword, codeLevel, standard)
     json = requests.get(url_call).json()
-    return dict(sorted({
-        i["industryName"]: i["industryID"] for i in json}.items()))
+    # If industry has codes, include the code in the key
+    try:
+        if onlyID:
+            return dict(sorted({
+                i["industryCode"]: i["industryID"] for i in json}.items()))
+        else:
+            return dict(sorted({
+                f'{i["industryName"]} ({i["industryCode"]})':
+                i["industryID"] for i in json}.items()))
+    except KeyError:
+        return dict(sorted({
+            i["industryName"]: i["industryID"] for i in json}.items()))
 
 
 def series_url(jurisdictionID):

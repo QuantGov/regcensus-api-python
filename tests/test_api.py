@@ -276,14 +276,14 @@ def test_list_jurisdictions():
 
 def test_list_industries():
     results = rc.list_industries(codeLevel=6)
-    assert results['Wood Container and Pallet Manufacturing'] == 1170
+    assert results['Wood Container and Pallet Manufacturing (321920)'] == 1170
 
 
 def test_list_industries_keyword():
     results = rc.list_industries(codeLevel=4, keyword='fishing')
-    assert results['Fishing'] == 126
+    assert results['Fishing (1141)'] == 126
 
 
 def test_list_bea_industries():
     results = rc.list_industries(standard='BEA')
-    assert results['Accommodation and food services (BEA)'] == 1974
+    assert results['Accommodation and food services (BEA) (79)'] == 1974
