@@ -85,6 +85,18 @@ def test_get_document_values():
     ]
 
 
+def test_get_reading_time():
+    results = rc.get_reading_time(
+        jurisdiction=38, date=2021, documentType=2, country=True)
+    assert order_results(results, 'seriesValue') == [
+        '10 weeks, 2 days', '10 weeks, 3 days, 2 hours',
+        '10 weeks, 3 days, 6 hours', '10 weeks, 4 days',
+        '10 weeks, 4 days, 6 hours', '11 weeks',
+        '11 weeks, 1 day, 3 hours', '11 weeks, 1 day, 7 hours',
+        '11 weeks, 3 days, 7 hours', '11 weeks, 4 days, 2 hours'
+    ]
+
+
 def test_get_values_multiple_series():
     results = rc.get_values(
         series=[1, 2], jurisdiction=38, date=1970, verbose=1
@@ -252,6 +264,17 @@ def test_list_series():
     assert results['Complexity Conditionals'] == 53
 
 
+def test_list_dates():
+    results = rc.list_dates(44)
+    assert list(reversed(results))[:11] == [
+        '2021-05-24', '2021-05-11', '2021',
+        '2020-04-28', '2020',
+        '2018-05-23', '2018',
+        '2017-01-01', '2017',
+        '2016-01-01', '2016'
+    ]
+
+
 def test_list_agencies():
     results = rc.list_agencies(jurisdictionID=38)
     assert results['Administrative Conference of the United States'] == 195
@@ -259,7 +282,7 @@ def test_list_agencies():
 
 def test_list_agencies_keyword():
     results = rc.list_agencies(keyword='Education')
-    assert results['California Department of Education'] == 770
+    assert results['California Department of Education (California)'] == 770
 
 
 def test_list_agencies_error(capsys):

@@ -10,30 +10,30 @@ date_format = re.compile(r'\d{4}(?:-\d{2}-\d{2})?')
 URL = 'http://ec2-54-156-9-159.compute-1.amazonaws.com:8080'
 
 
-def get_values(series, jurisdiction, date, filtered=True, summary=True,
-               documentType=1, agency=None, industry=None, dateIsRange=True,
-               country=False, industryLevel=3, version=None,
+def get_values(series, jurisdiction, date, documentType=None, summary=True,
+               dateIsRange=True, country=False, agency=None,
+               industry=None, filtered=True, industryLevel=None, version=None,
                download=False, verbose=0):
     """
     Get values for a specific jurisdition and series
 
     Args:
-        jurisdiction: Jurisdiction ID(s)
+        jurisdiction: Jurisdiction ID(s) (name may also be passed)
         series: Series ID(s)
         date: Year(s) of data
-        summary (optional): Return summary instead of document level data
-        filtered (optional): Exclude poorly-performing industry results
-            (use of unfiltered results is NOT recommended)
         documentType (optional): ID for type of document
+        summary (optional): Return summary instead of document level data
+        dateIsRange (optional): Indicating whether the time parameter is range
+            or should be treated as single data points
+        country (optional): Get values for all subjurisdictions
         agency (optional): Agency ID (if no ID is passed and the series
             contains agency data, returns data for all agencies)
         industry (optional): Industry code using the jurisdiction-specific
             coding system (returns all 3-digit industries by default)
-        dateIsRange (optional): Indicating whether the time parameter is range
-            or should be treated as single data points
-        country (optional): Get values for all subjurisdictions
+        filtered (optional): Exclude poorly-performing industry results
+            (use of unfiltered results is NOT recommended)
         industryLevel (optional): Level of NAICS industries to include
-            (default is 3)
+            (default is 3 in the API)
         version (optional): Version ID for datasets with multiple versions
             (if no ID is given, returns most recent version)
         download (optional): If not False, a path location for a
@@ -62,6 +62,9 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
     # If multiple jurisdictions are given, parses the list into a string
     if type(jurisdiction) == list:
         url_call += f'&jurisdiction={",".join(str(i) for i in jurisdiction)}'
+    # If jurisdiction name is passed, use list_jurisdictions to find the ID
+    elif re.search(r'\D', str(jurisdiction)):
+        url_call += f'&jurisdiction={list_jurisdictions()[jurisdiction]}'
     elif type(jurisdiction) in [int, str]:
         url_call += f'&jurisdiction={jurisdiction}'
     # If no appropriate jurisdiction is given, prints warning message and
@@ -124,8 +127,9 @@ def get_values(series, jurisdiction, date, filtered=True, summary=True,
               'Use of these results is NOT recommended.')
         url_call += '&filteredOnly=false'
 
-    # Always include documentType in the API call
-    url_call += f'&documentType={documentType}'
+    # Adds documentType argument (default is 1 in API)
+    if documentType:
+        url_call += f'&documentType={documentType}'
 
     # Adds country argument if country-level data is requested
     if country:
@@ -162,6 +166,22 @@ def get_document_values(*args, **kwargs):
     Simply returns get_values() with summary=False
     """
     return get_values(*args, **kwargs, summary=False)
+
+
+def get_reading_time(*args, **kwargs):
+    """
+    Convert word counts to total reading time
+    """
+    results = get_values(series=2, *args, **kwargs)
+    results['seriesName'] = 'Reading Time'
+    results['seriesValue'] = results['seriesValue'].apply(reading_time)
+    results['footNote'] = (
+        'Reading time calculation assumes an 8 hour work-day, '
+        'a 5 day work-week, and a 50 week work-year.')
+    return results[[
+        'seriesValue', 'seriesName', 'jurisdictionName', 'periodCode',
+        'sourceCitation', 'sourceName', 'sourceOrganization', 'sourceUrl',
+        'documentationUrl', 'footNote']]
 
 
 def get_series(jurisdictionID=None, verbose=0):
@@ -283,6 +303,15 @@ def list_series(jurisdictionID=None):
         for s in json}.items()))
 
 
+def list_dates(jurisdictionID):
+    """
+    Args: jurisdictionID: ID for the jurisdiction
+
+    Returns: list of dates available for the jurisdiction
+    """
+    return sorted(get_series(jurisdictionID)['periodCode'].unique())
+
+
 def list_agencies(jurisdictionID=None, keyword=None):
     """
     Args:
@@ -295,9 +324,15 @@ def list_agencies(jurisdictionID=None, keyword=None):
     if not url_call:
         return
     json = requests.get(url_call).json()
-    return dict(sorted({
-        a["agencyName"]: a["agencyID"]
-        for a in json if a["agencyName"]}.items()))
+    # Add jurisdiction name to key if keyword is used
+    if keyword:
+        return dict(sorted({
+            f'{a["agencyName"]} ({a["jurisdictionName"]})': a["agencyID"]
+            for a in json if a["agencyName"]}.items()))
+    else:
+        return dict(sorted({
+            a["agencyName"]: a["agencyID"]
+            for a in json if a["agencyName"]}.items()))
 
 
 def list_jurisdictions():
@@ -391,3 +426,41 @@ def json_normalize(output):
         return pd.json_normalize(output)
     except AttributeError:
         return pd.io.json.json_normalize(output)
+
+
+def reading_time(words):
+    """
+    Returns a string detailing how long it takes to read a document based on
+    how many words the document has. The function assumes an 8 hour work-day,
+    a 5 day work-week, and a 50 week work-year.
+    """
+    text = ''
+    years = words / 36000000
+    weeks = (years - int(years)) * 50
+    days = (weeks - int(weeks)) * 5
+    hours = (days - int(days)) * 8
+    minutes = (hours - int(hours)) * 60
+    if int(years):
+        text += str(int(years)) + ' year, '
+        if int(years) > 1:
+            text = text.replace('year', 'years')
+    if int(weeks):
+        text += str(int(weeks)) + ' week, '
+        if int(weeks) > 1:
+            text = text.replace('week', 'weeks')
+    if int(days):
+        text += str(int(days)) + ' day, '
+        if int(days) > 1:
+            text = text.replace('day', 'days')
+    if int(hours) and not int(years):
+        text += str(int(hours)) + ' hour, '
+        if int(hours) > 1:
+            text = text.replace('hour', 'hours')
+    if int(minutes) and not int(years) and not int(weeks):
+        text += str(int(minutes)) + ' minute'
+        if int(minutes) > 1:
+            text = text.replace('minute', 'minutes')
+    if text:
+        return text.strip(', ')
+    else:
+        return 'Less than a minute'
