@@ -58,12 +58,19 @@ def test_get_industries_keyword():
     ]
 
 
-def test_get_documents():
-    results = rc.get_documents(jurisdictionID=44, verbose=1)
+def test_get_documents_jurisdiction():
+    results = rc.get_documents(date=2020, jurisdictionID=44, verbose=1)
     assert order_results(results, 'documentID') == [
-        4441363, 4441364, 4441365, 4441366, 4441367,
-        4441368, 4441369, 4441370, 4441371, 4441372
+        3800000001, 3800000002, 3800000003, 3800000004, 3800000005,
+        3800000006, 3800000007, 3800000008, 3800000009, 3800000010
     ]
+
+
+def test_get_documents_document_id():
+    results = rc.get_documents(date=2020, documentID=3800000001, verbose=1)
+    assert results['documentReference'].values[0] == (
+        'Agency 01, Title 01, Chapter 01'
+    )
 
 
 def test_get_versions():
@@ -99,7 +106,7 @@ def test_get_reading_time():
 
 def test_get_values_multiple_series():
     results = rc.get_values(
-        series=[1, 2], jurisdiction=38, date=1970, verbose=1
+        series=[1, 2], jurisdiction='United States', date=1970, verbose=1
     )
     assert order_results(results, 'seriesValue') == [409520.0, 33588985.0]
 
@@ -114,6 +121,12 @@ def test_get_values_incorrect_series(capsys):
 
 def test_get_values_multiple_jurisdictions():
     results = rc.get_values(series=1, jurisdiction=[58, 59], date=2019)
+    assert order_results(results, 'seriesValue') == [52569.0, 107063.0]
+
+
+def test_get_values_multiple_jurisdiction_names():
+    results = rc.get_values(
+        series=1, jurisdiction=['Alaska', 'Alabama'], date=2019)
     assert order_results(results, 'seriesValue') == [52569.0, 107063.0]
 
 
@@ -239,17 +252,16 @@ def test_get_values_error(capsys):
     results = rc.get_values(series=1, jurisdiction=38, date=1900, verbose=1)
     assert not results
     assert capsys.readouterr().out == (
-        'API call: https://api.quantgov.org/values'
-        '?series=1&jurisdiction=38&date=1900&documentType=1\n'
+        'API call: https://api.quantgov.org/summary'
+        '?series=1&jurisdiction=38&date=1900\n'
         'WARNING: SeriesValue was not found for the specified parameters. '
         'Please check that you have selected the right combination of '
         'parameters.  When in doubt, please use the /periods endpoint to find '
         'out the combinations of series, jurisdiction, periods, agencies, '
         'document types for which there are data available.{parameters='
-        '{jurisdiction=[US_UNITED_STATES], date=[1900], industry=null, '
-        'agency=null, dateIsRange=false, filteredOnly=true, '
-        'series=[SERIES_1], documentType=REGULATION_TEXT_ALL_REGULATIONS, '
-        'documentID=null, national=false}}\n'
+        '{jurisdiction=[US_UNITED_STATES], date=[1900], labelLevel=[3], '
+        'agency=null, dateIsRange=false, filteredOnly=true, label=null, '
+        'series=[SERIES_1], documentType=null, national=false}}\n'
     )
 
 
@@ -266,12 +278,13 @@ def test_list_series():
 
 def test_list_dates():
     results = rc.list_dates(44)
-    assert list(reversed(results))[:11] == [
-        '2021-05-24', '2021-05-11', '2021',
+    assert list(reversed(results))[:12] == [
+        '2021-05-11', '2021',
         '2020-04-28', '2020',
         '2018-05-23', '2018',
         '2017-01-01', '2017',
-        '2016-01-01', '2016'
+        '2016-01-01', '2016',
+        '2015-01-01', '2015'
     ]
 
 
@@ -300,6 +313,11 @@ def test_list_jurisdictions():
 def test_list_industries():
     results = rc.list_industries(codeLevel=6)
     assert results['Wood Container and Pallet Manufacturing (321920)'] == 1170
+
+
+def test_list_industries_onlyID():
+    results = rc.list_industries(codeLevel=6, onlyID=True)
+    assert results['321920'] == 1170
 
 
 def test_list_industries_keyword():

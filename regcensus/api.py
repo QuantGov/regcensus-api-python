@@ -15,7 +15,7 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
                industry=None, filtered=True, industryLevel=None, version=None,
                download=False, verbose=0):
     """
-    Get values for a specific jurisdition and series
+    Get values for a specific jurisdiction and series
 
     Args:
         jurisdiction: Jurisdiction ID(s) (name may also be passed)
@@ -59,12 +59,16 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
         pp.pprint(list_series())
         return
 
-    # If multiple jurisdictions are given, parses the list into a string
-    if type(jurisdiction) == list:
+    # If multiple jurisdiction names are given, parses the list into a string
+    if type(jurisdiction) == list and re.search(r'\D', str(jurisdiction[0])):
+        url_call += f'&jurisdictionName={",".join(i for i in jurisdiction)}'
+    # If multiple jurisdiction IDs are given, parses the list into a string
+    elif type(jurisdiction) == list:
         url_call += f'&jurisdiction={",".join(str(i) for i in jurisdiction)}'
-    # If jurisdiction name is passed, use list_jurisdictions to find the ID
-    elif re.search(r'\D', str(jurisdiction)):
-        url_call += f'&jurisdiction={list_jurisdictions()[jurisdiction]}'
+    # If jurisdiction name is passed, use jurisdictionName
+    elif jurisdiction and re.search(r'\D', str(jurisdiction)):
+        url_call += f'&jurisdictionName={jurisdiction}'
+    # If jurisdiction is just an ID, use jurisdiction
     elif type(jurisdiction) in [int, str]:
         url_call += f'&jurisdiction={jurisdiction}'
     # If no appropriate jurisdiction is given, prints warning message and
@@ -82,9 +86,9 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
 
     # If multiple industries are given, parses the list into a string
     if type(industry) == list:
-        url_call += f'&industry={",".join(str(i) for i in industry)}'
+        url_call += f'&label={",".join(str(i) for i in industry)}'
     elif industry:
-        url_call += f'&industry={industry}'
+        url_call += f'&label={industry}'
     # Specify level of industry (NAICS only)
     if industryLevel:
         url_call += f'&industryLevel={industryLevel}'
@@ -141,7 +145,7 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
 
     # Prints the url call if verbosity is flagged
     if verbose:
-        print(f'API call: {url_call}')
+        print(f'API call: {url_call.replace(" ", "%20")}')
 
     # Puts flattened JSON output into a pandas DataFrame
     output = json_normalize(requests.get(url_call).json())
@@ -245,19 +249,29 @@ def get_industries(keyword=None, codeLevel=3, standard=None, verbose=0):
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def get_documents(jurisdictionID, documentType=1, verbose=0):
+def get_documents(documentID=None, jurisdictionID=None, date=None,
+                  documentType=1, verbose=0):
     """
-    Get metadata for documents available in a specific jurisdiction, optional
-    filtering by document type (see list_document_types() for options)
+    Get metadata for documents available in a specific jurisdiction or
+    for a specific document ID
 
     Args:
+        documentID: ID of the specific document
         jurisdictionID: ID for the jurisdiction
+        date: Year of the documents
         documentType (optional): ID for type of document
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = URL + (f'/documentMetadata?jurisdiction={jurisdictionID}&'
-                      f'documentType={documentType}')
+    if documentID:
+        url_call = URL + f'/documentMetadata/documents?documentID={documentID}'
+    elif jurisdictionID and date:
+        url_call = URL + (f'/documentMetadata?jurisdiction={jurisdictionID}&'
+                          f'documentType={documentType}')
+    else:
+        print('Must include either "jurisdictionID and date" or "documentID."')
+        return
+    url_call += f'&date={date}'
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
@@ -402,13 +416,13 @@ def jurisdictions_url(jurisdictionID):
 
 
 def industries_url(keyword, codeLevel, standard):
-    """Gets url call for industries endpoint."""
+    """Gets url call for label (formerly industries) endpoint."""
     if keyword:
         url_call = (
-            URL + f'/industries/keyword?'
+            URL + f'/label/keyword?'
                   f'codeLevel={codeLevel}&keyword={keyword}')
     else:
-        url_call = URL + f'/industries?codeLevel={codeLevel}'
+        url_call = URL + f'/label?codeLevel={codeLevel}'
     if standard:
         url_call += f'&standard={standard}'
     return url_call
@@ -428,7 +442,7 @@ def json_normalize(output):
         return pd.io.json.json_normalize(output)
 
 
-def reading_time(words):
+def reading_time(words, workday=8, workweek=5, workyear=50):
     """
     Returns a string detailing how long it takes to read a document based on
     how many words the document has. The function assumes an 8 hour work-day,
@@ -436,9 +450,9 @@ def reading_time(words):
     """
     text = ''
     years = words / 36000000
-    weeks = (years - int(years)) * 50
-    days = (weeks - int(weeks)) * 5
-    hours = (days - int(days)) * 8
+    weeks = (years - int(years)) * workyear
+    days = (weeks - int(weeks)) * workweek
+    hours = (days - int(days)) * workday
     minutes = (hours - int(hours)) * 60
     if int(years):
         text += str(int(years)) + ' year, '
