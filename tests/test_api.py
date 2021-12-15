@@ -271,6 +271,12 @@ def test_list_document_types():
     assert results['Regulation text All regulations'] == 1
 
 
+def test_list_document_types_jurisdiction():
+    results = rc.list_document_types(jurisdictionID=38)
+    assert results[
+        'Regulation text US Electronic Code of Federal Regulations'] == 5
+
+
 def test_list_series():
     results = rc.list_series()
     assert results['Complexity Conditionals'] == 53

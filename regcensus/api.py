@@ -294,11 +294,17 @@ def get_versions(jurisdictionID, documentType=1, verbose=0):
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def list_document_types():
+def list_document_types(jurisdictionID=None):
     """
+    Args: jurisdictionID (optional): ID for the jurisdiction
+
     Returns: a dictionary containing names of documenttypes and associated IDs
     """
-    json = requests.get(URL + '/documenttypes').json()
+    if jurisdictionID:
+        json = requests.get(
+            URL + f'/documenttypes?jurisdiction={jurisdictionID}').json()
+    else:
+        json = requests.get(URL + '/documenttypes').json()
     return dict(sorted({
         d["subtypeName"]: d["documentSubtypeID"]
         for d in json if d["subtypeName"]}.items()))
