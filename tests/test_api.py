@@ -1,4 +1,3 @@
-import pytest
 import os
 import regcensus as rc
 
@@ -12,56 +11,77 @@ def order_results(results, column, descending=False):
 
 
 # TEST FUNCTIONS
+
+# Tests for get_() functions
 def test_get_series():
     results = rc.get_series(verbose=1)
-    assert order_results(results, 'seriesCode') == [
-        'FRASE001', 'FRASE002', 'HC_THRESH', 'OL_THRESH',
-        'Placeholder', 'Placeholder', 'Placeholder',
-        'Placeholder', 'Placeholder', 'Placeholder']
+    assert order_results(results, 'seriesID') == [1] * 10
 
 
 def test_get_agencies():
-    results = rc.get_agencies(38, verbose=1)
+    results = rc.get_agencies(jurisdictionID=38, verbose=1)
     assert order_results(results, 'agencyID') == [
-        64, 65, 66, 67, 68, 70, 71, 72, 73, 74
+        0, 1, 64, 65, 66, 67, 68, 69, 70, 71
     ]
+
+
+def test_get_agencies_keyword():
+    results = rc.get_agencies(keyword='Education', verbose=1)
+    assert order_results(results, 'agencyID') == [
+        225, 348, 375, 403, 475, 521, 539, 572, 595, 603
+    ]
+
+
+def test_get_agencies_error(capsys):
+    results = rc.get_agencies()
+    assert not results
+    assert capsys.readouterr().out == (
+        'Must include either "jurisdictionID" or "keyword."\n')
 
 
 def test_get_jurisdictions():
-    results = rc.get_jurisdictions(verbose=1)
-    assert order_results(results, 'jurisdictionID') == [
-        2, 4, 10, 11, 14, 15, 17, 20, 23, 24
-    ]
-
-
-def test_get_periods():
-    results = rc.get_periods(38, documentType=1, verbose=1)
-    assert order_results(results, 'recordsAvailable', descending=True) == (
-        [37004219] * 10
-    )
-
-
-def test_get_periods_one_series():
-    results = rc.get_periods(20, documentType=1, seriesID=29, verbose=1)
-    assert order_results(results, 'recordsAvailable') == [19844, 19844]
+    results = rc.get_jurisdictions(38, verbose=1)
+    assert order_results(results, 'jurisdictionID') == [38]
 
 
 def test_get_industries():
-    results = rc.get_industries(jurisdictionID=38, verbose=1)
+    results = rc.get_industries(verbose=1)
     assert order_results(results, 'industryCode') == [
-        '0', '10', '11', '11', '111', '1111',
-        '11111', '111110', '11112', '111120'
+        '0', '111', '112', '114', '115', '211', '212', '213', '221', '236'
     ]
 
 
-def test_get_documents():
-    results = rc.get_documents(jurisdictionID=44, verbose=1)
+def test_get_industries_keyword():
+    results = rc.get_industries(keyword='Fishing', codeLevel=6, verbose=1)
+    assert order_results(results, 'industryCode') == [
+        '114111', '114112', '114119'
+    ]
+
+
+def test_get_documents_jurisdiction():
+    results = rc.get_documents(date=2020, jurisdictionID=44, verbose=1)
     assert order_results(results, 'documentID') == [
-        4441363, 4441364, 4441365, 4441366, 4441367,
-        4441368, 4441369, 4441370, 4441371, 4441372
+        3800000001, 3800000002, 3800000003, 3800000004, 3800000005,
+        3800000006, 3800000007, 3800000008, 3800000009, 3800000010
     ]
 
 
+def test_get_documents_document_id():
+    results = rc.get_documents(date=2020, documentID=3800000001, verbose=1)
+    assert results['documentReference'].values[0] == (
+        'Agency 01, Title 01, Chapter 01'
+    )
+
+
+def test_get_versions():
+    results = rc.get_versions(38, verbose=1)
+    assert order_results(results, 'sourceName') == [
+        'Occupation Data (dataset)', 'Occupation Data (dataset)',
+        'RegData US 3.2 Annual (dataset)', 'RegData US 4.0 Annual (dataset)'
+    ]
+
+
+# Tests for get_values()
 def test_get_document_values():
     results = rc.get_document_values(
         series=[1, 2], jurisdiction=20, date='2020-06-02', verbose=1
@@ -72,9 +92,21 @@ def test_get_document_values():
     ]
 
 
+def test_get_reading_time():
+    results = rc.get_reading_time(
+        jurisdiction=38, date=2021, documentType=2, country=True)
+    assert order_results(results, 'seriesValue') == [
+        '10 weeks, 2 days', '10 weeks, 3 days, 2 hours',
+        '10 weeks, 3 days, 6 hours', '10 weeks, 4 days',
+        '10 weeks, 4 days, 6 hours', '11 weeks',
+        '11 weeks, 1 day, 3 hours', '11 weeks, 1 day, 7 hours',
+        '11 weeks, 3 days, 7 hours', '11 weeks, 4 days, 2 hours'
+    ]
+
+
 def test_get_values_multiple_series():
     results = rc.get_values(
-        series=[1, 2], jurisdiction=38, date=1970, verbose=1
+        series=[1, 2], jurisdiction='United States', date=1970, verbose=1
     )
     assert order_results(results, 'seriesValue') == [409520.0, 33588985.0]
 
@@ -92,15 +124,22 @@ def test_get_values_multiple_jurisdictions():
     assert order_results(results, 'seriesValue') == [52569.0, 107063.0]
 
 
+def test_get_values_multiple_jurisdiction_names():
+    results = rc.get_values(
+        series=1, jurisdiction=['Alaska', 'Alabama'], date=2019)
+    assert order_results(results, 'seriesValue') == [52569.0, 107063.0]
+
+
 def test_get_values_all_industries():
     results = rc.get_values(
-        series=9, jurisdiction=58, date=2019, industry='all', filtered=False
+        series=9, jurisdiction=58, date=2019, filtered=False
     )
-    assert order_results(results, 'seriesValue') == [
-        16.487800191811402, 28.080800290597836, 32.408500283963804,
-        36.27130037093593, 36.53810011051246, 36.72170047096006,
-        40.113500030507566, 44.19190023323608, 45.02970027324045,
-        48.842899827621295
+    assert order_results(results, 'seriesValue', descending=True) == [
+        2399.6540837686553, 2346.9849032768325,
+        2231.579487334733, 1910.4039869066692,
+        1858.660280573211, 1845.9105216636453,
+        1756.3024117016612, 1272.998498038447,
+        1214.762196061427, 1155.1694051386294
     ]
 
 
@@ -152,7 +191,8 @@ def test_get_values_multiple_dates():
 def test_get_values_incorrect_dates(capsys):
     results = rc.get_values(series=1, jurisdiction=38, date=None)
     assert not results
-    assert capsys.readouterr().out == 'Valid date is required.\n'
+    assert capsys.readouterr().out == (
+        'Valid date is required. Select from the following list:\n')
 
 
 def test_get_values_country():
@@ -170,7 +210,7 @@ def test_get_values_agency():
 
 def test_get_values_all_agencies():
     results = rc.get_values(
-        series=13, jurisdiction=38, date=2019, agency='all'
+        series=13, jurisdiction=38, date=2019
     )
     assert order_results(results, 'seriesValue') == [
         0.0, 0.0, 1.0, 1.0, 5.0, 18.0, 33.0, 34.0, 50.0, 59.0
@@ -212,23 +252,29 @@ def test_get_values_error(capsys):
     results = rc.get_values(series=1, jurisdiction=38, date=1900, verbose=1)
     assert not results
     assert capsys.readouterr().out == (
-        'API call: https://api.quantgov.org/values'
-        '?series=1&jurisdiction=38&date=1900&documentType=1\n'
+        'API call: https://api.quantgov.org/summary'
+        '?series=1&jurisdiction=38&date=1900\n'
         'WARNING: SeriesValue was not found for the specified parameters. '
         'Please check that you have selected the right combination of '
         'parameters.  When in doubt, please use the /periods endpoint to find '
         'out the combinations of series, jurisdiction, periods, agencies, '
         'document types for which there are data available.{parameters='
-        '{jurisdiction=[US_UNITED_STATES], date=[1900], industry=null, '
-        'agency=null, dateIsRange=false, filteredOnly=true, '
-        'series=[SERIES_1], documentType=REGULATION_TEXT_ALL_REGULATIONS, '
-        'documentID=null, national=false}}\n'
+        '{jurisdiction=[US_UNITED_STATES], date=[1900], labelLevel=[3], '
+        'agency=null, dateIsRange=false, filteredOnly=true, label=null, '
+        'series=[SERIES_1], documentType=null, national=false}}\n'
     )
 
 
+# Tests for list_() functions
 def test_list_document_types():
     results = rc.list_document_types()
     assert results['Regulation text All regulations'] == 1
+
+
+def test_list_document_types_jurisdiction():
+    results = rc.list_document_types(jurisdictionID=38)
+    assert results[
+        'Regulation text US Electronic Code of Federal Regulations'] == 5
 
 
 def test_list_series():
@@ -236,9 +282,33 @@ def test_list_series():
     assert results['Complexity Conditionals'] == 53
 
 
+def test_list_dates():
+    results = rc.list_dates(44)
+    assert list(reversed(results))[:12] == [
+        '2021-05-11', '2021',
+        '2020-04-28', '2020',
+        '2018-05-23', '2018',
+        '2017-01-01', '2017',
+        '2016-01-01', '2016',
+        '2015-01-01', '2015'
+    ]
+
+
 def test_list_agencies():
-    results = rc.list_agencies(38)
+    results = rc.list_agencies(jurisdictionID=38)
     assert results['Administrative Conference of the United States'] == 195
+
+
+def test_list_agencies_keyword():
+    results = rc.list_agencies(keyword='Education')
+    assert results['California Department of Education (California)'] == 770
+
+
+def test_list_agencies_error(capsys):
+    results = rc.list_agencies()
+    assert not results
+    assert capsys.readouterr().out == (
+        'Must include either "jurisdictionID" or "keyword."\n')
 
 
 def test_list_jurisdictions():
@@ -247,5 +317,20 @@ def test_list_jurisdictions():
 
 
 def test_list_industries():
-    results = rc.list_industries(jurisdictionID=38)
-    assert results['Wood Container and Pallet Manufacturing'] == 1170
+    results = rc.list_industries(codeLevel=6)
+    assert results['Wood Container and Pallet Manufacturing (321920)'] == 1170
+
+
+def test_list_industries_onlyID():
+    results = rc.list_industries(codeLevel=6, onlyID=True)
+    assert results['321920'] == 1170
+
+
+def test_list_industries_keyword():
+    results = rc.list_industries(codeLevel=4, keyword='fishing')
+    assert results['Fishing (1141)'] == 126
+
+
+def test_list_bea_industries():
+    results = rc.list_industries(standard='BEA')
+    assert results['Accommodation and food services (BEA) (79)'] == 1974
