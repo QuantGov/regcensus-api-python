@@ -188,7 +188,7 @@ def get_reading_time(*args, **kwargs):
         'documentationUrl', 'footNote']]
 
 
-def get_series(jurisdictionID=None, verbose=0):
+def get_series(jurisdictionID=None, documentType=None, verbose=0):
     """
     Get series and date metadata for all or one specific jurisdiction
 
@@ -196,7 +196,7 @@ def get_series(jurisdictionID=None, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = series_url(jurisdictionID)
+    url_call = series_url(jurisdictionID, documentType)
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
@@ -391,11 +391,17 @@ def list_industries(keyword=None, codeLevel=3, standard='NAICS', onlyID=False):
             i["industryName"]: i["industryID"] for i in json}.items()))
 
 
-def series_url(jurisdictionID):
+def series_url(jurisdictionID, documentType=None):
     """Gets url call for series endpoint."""
     url_call = URL + '/series'
-    if jurisdictionID:
+    if jurisdictionID and documentType:
+        url_call += (
+            f'?jurisdiction={jurisdictionID}&'
+            f'documentType={documentType}')
+    elif jurisdictionID:
         url_call += f'?jurisdiction={jurisdictionID}'
+    elif documentType:
+        url_call += f'?documentType={documentType}'
     return url_call
 
 
