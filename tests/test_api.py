@@ -15,20 +15,22 @@ def order_results(results, column, descending=False):
 # Tests for get_() functions
 def test_get_series():
     results = rc.get_series(verbose=1)
-    assert order_results(results, 'seriesID') == [1] * 10
+    assert order_results(results, 'seriesID') == [
+        1, 2, 3, 4, 5, 6, 7, 9, 10, 11
+    ]
 
 
 def test_get_agencies():
     results = rc.get_agencies(jurisdictionID=38, verbose=1)
     assert order_results(results, 'agencyID') == [
-        0, 1, 64, 65, 66, 67, 68, 69, 70, 71
+        0, 3, 5, 6, 7, 8, 9, 11, 12, 13
     ]
 
 
 def test_get_agencies_keyword():
     results = rc.get_agencies(keyword='Education', verbose=1)
     assert order_results(results, 'agencyID') == [
-        225, 348, 375, 403, 475, 521, 539, 572, 595, 603
+        52, 216, 225, 226, 238, 267, 285, 296, 356, 358
     ]
 
 
@@ -204,24 +206,25 @@ def test_get_values_country():
 
 
 def test_get_values_agency():
-    results = rc.get_values(series=13, jurisdiction=38, date=2019, agency=195)
-    assert order_results(results, 'seriesValue') == [62.0]
+    results = rc.get_values(series=13, jurisdiction=66, date=2021, agency=3112)
+    assert order_results(results, 'seriesValue') == [40141.0]
 
 
 def test_get_values_all_agencies():
     results = rc.get_values(
-        series=13, jurisdiction=38, date=2019
+        series=13, jurisdiction=66, date=2021
     )
     assert order_results(results, 'seriesValue') == [
-        0.0, 0.0, 1.0, 1.0, 5.0, 18.0, 33.0, 34.0, 50.0, 59.0
+        555.0, 2025.0, 2035.0, 3085.0, 3849.0,
+        4771.0, 5235.0, 5399.0, 6119.0, 6783.0
     ]
 
 
 def test_get_values_multiple_agencies():
     results = rc.get_values(
-        series=13, jurisdiction=38, date=2019, agency=[111, 99]
+        series=13, jurisdiction=66, date=2021, agency=[3112, 3113]
     )
-    assert order_results(results, 'seriesValue') == [34167.0, 91087.0]
+    assert order_results(results, 'seriesValue') == [17304.0, 40141.0]
 
 
 def test_get_values_version():
@@ -233,7 +236,7 @@ def test_get_values_version():
 
 def test_get_values_download():
     results = rc.get_values(
-        series=13, jurisdiction=38, date=2019, agency=195, download='test.csv'
+        series=13, jurisdiction=66, date=2021, agency=3112, download='test.csv'
     )
     assert not results
     assert os.path.exists('test.csv')
@@ -242,27 +245,25 @@ def test_get_values_download():
 
 def test_get_values_incorrect_download(capsys):
     results = rc.get_values(
-        series=13, jurisdiction=38, date=2019, agency=195, download=True
+        series=13, jurisdiction=66, date=2021, agency=3112, download=True
     )
     assert not results
     assert capsys.readouterr().out == 'Valid outpath required to download.\n'
 
 
 def test_get_values_error(capsys):
-    results = rc.get_values(series=1, jurisdiction=38, date=1900, verbose=1)
+    results = rc.get_values(series=1, jurisdiction=38, date=1900)
     assert not results
     assert capsys.readouterr().out == (
-        'API call: https://api.quantgov.org/summary'
-        '?series=1&jurisdiction=38&date=1900\n'
         'WARNING: SeriesValue was not found for the specified parameters. '
         'Please check that you have selected the right combination of '
-        'parameters.  When in doubt, please use the /periods endpoint to find '
-        'out the combinations of series, jurisdiction, periods, agencies, '
-        'document types for which there are data available.{parameters='
-        '{jurisdiction=[US_UNITED_STATES], date=[1900], labelLevel=[3], '
-        'agency=null, dateIsRange=false, filteredOnly=true, label=null, '
-        'series=[SERIES_1], documentType=null, national=false}}\n'
-    )
+        'parameters.  When in doubt, please use the /periods endpoint to '
+        'find out the combinations of series, jurisdiction, periods, '
+        'agencies, document types for which there are data available.'
+        '{parameters={jurisdiction=[US_UNITED_STATES], date=[1900], '
+        'labelLevel=[3], agency=null, dateIsRange=false, filteredOnly=false, '
+        'label=null, series=[SERIES_1], documentType=null, '
+        'national=false, cluster=null}}\n')
 
 
 # Tests for list_() functions
@@ -295,13 +296,14 @@ def test_list_dates():
 
 
 def test_list_agencies():
-    results = rc.list_agencies(jurisdictionID=38)
-    assert results['Administrative Conference of the United States'] == 195
+    results = rc.list_agencies(jurisdictionID=66)
+    assert results['department of health'] == 3112
 
 
 def test_list_agencies_keyword():
     results = rc.list_agencies(keyword='Education')
-    assert results['California Department of Education (California)'] == 770
+    assert results[
+        'california educational facilities authority (California)'] == 2094
 
 
 def test_list_agencies_error(capsys):
