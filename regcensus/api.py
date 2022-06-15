@@ -109,7 +109,7 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
     # and function returns empty.
     else:
         print("Valid date is required. Select from the following list:")
-        dates = sorted(get_series(jurisdiction)['periodCode'].unique())
+        dates = list_dates(jurisdiction)
         pp.pprint(dates)
         return
 
@@ -182,21 +182,32 @@ def get_reading_time(*args, **kwargs):
     results['footNote'] = (
         'Reading time calculation assumes an 8 hour work-day, '
         'a 5 day work-week, and a 50 week work-year.')
-    return results[[
-        'seriesValue', 'seriesName', 'jurisdictionName', 'periodCode',
-        'sourceCitation', 'sourceName', 'sourceOrganization', 'sourceUrl',
-        'documentationUrl', 'footNote']]
+    return results
 
 
 def get_series(jurisdictionID=None, documentType=None, verbose=0):
     """
-    Get series and date metadata for all or one specific jurisdiction
+    Get series metadata for all or one specific jurisdiction
 
     Args: jurisdictionID (optional): ID for the jurisdiction
 
     Returns: pandas dataframe with the metadata
     """
     url_call = series_url(jurisdictionID, documentType)
+    if verbose:
+        print(f'API call: {url_call}')
+    return clean_columns(json_normalize(requests.get(url_call).json()))
+
+
+def get_periods(jurisdictionID=None, documentType=None, verbose=0):
+    """
+    Get date metadata for all or one specific jurisdiction
+
+    Args: jurisdictionID (optional): ID for the jurisdiction
+
+    Returns: pandas dataframe with the metadata
+    """
+    url_call = periods_url(jurisdictionID, documentType)
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
@@ -310,16 +321,16 @@ def list_document_types(jurisdictionID=None):
         for d in json if d["subtypeName"]}.items()))
 
 
-def list_series(jurisdictionID=None):
+def list_series(jurisdictionID=None, documentType=None):
     """
     Args: jurisdictionID (optional): ID for the jurisdiction
 
     Returns: dictionary containing names of series and associated IDs
     """
-    url_call = series_url(jurisdictionID)
+    url_call = series_url(jurisdictionID, documentType)
     json = requests.get(url_call).json()
     return dict(sorted({
-        s["series"]["seriesName"]: s["series"]["seriesID"]
+        s["seriesName"]: s["seriesID"]
         for s in json}.items()))
 
 
@@ -329,7 +340,7 @@ def list_dates(jurisdictionID):
 
     Returns: list of dates available for the jurisdiction
     """
-    return sorted(get_series(jurisdictionID)['periodCode'].unique())
+    return sorted(get_periods(jurisdictionID)['periodCode'].unique())
 
 
 def list_agencies(jurisdictionID=None, keyword=None):
@@ -393,7 +404,21 @@ def list_industries(keyword=None, codeLevel=3, standard='NAICS', onlyID=False):
 
 def series_url(jurisdictionID, documentType=None):
     """Gets url call for series endpoint."""
-    url_call = URL + '/series'
+    url_call = URL + '/dataseries'
+    if jurisdictionID and documentType:
+        url_call += (
+            f'?jurisdiction={jurisdictionID}&'
+            f'documentType={documentType}')
+    elif jurisdictionID:
+        url_call += f'?jurisdiction={jurisdictionID}'
+    elif documentType:
+        url_call += f'?documentType={documentType}'
+    return url_call
+
+
+def periods_url(jurisdictionID, documentType=None):
+    """Gets url call for series endpoint."""
+    url_call = URL + '/seriesperiod'
     if jurisdictionID and documentType:
         url_call += (
             f'?jurisdiction={jurisdictionID}&'
