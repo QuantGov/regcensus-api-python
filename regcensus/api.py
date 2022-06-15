@@ -7,7 +7,7 @@ pp = pprint.PrettyPrinter()
 
 date_format = re.compile(r'\d{4}(?:-\d{2}-\d{2})?')
 
-URL = 'http://ec2-54-156-9-159.compute-1.amazonaws.com:8080'
+URL = 'https://api.quantgov.org'
 
 
 def get_values(series, jurisdiction, date, documentType=None, summary=True,
