@@ -91,7 +91,7 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
         url_call += f'&label={industry}'
     # Specify level of industry (NAICS only)
     if industryLevel:
-        url_call += f'&industryLevel={industryLevel}'
+        url_call += f'&labelLevel={industryLevel}'
 
     # If multiple dates are given, parses the list into a string
     if type(date) == list:
@@ -109,7 +109,7 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
     # and function returns empty.
     else:
         print("Valid date is required. Select from the following list:")
-        dates = list_dates(jurisdiction)
+        dates = list_dates(jurisdiction, verbose=verbose)
         pp.pprint(dates)
         return
 
@@ -305,17 +305,19 @@ def get_versions(jurisdictionID, documentType=1, verbose=0):
     return clean_columns(json_normalize(requests.get(url_call).json()))
 
 
-def list_document_types(jurisdictionID=None):
+def list_document_types(jurisdictionID=None, verbose=0):
     """
     Args: jurisdictionID (optional): ID for the jurisdiction
 
     Returns: a dictionary containing names of documenttypes and associated IDs
     """
     if jurisdictionID:
-        json = requests.get(
-            URL + f'/documenttypes?jurisdiction={jurisdictionID}').json()
+        url_call = URL + f'/documenttypes?jurisdiction={jurisdictionID}'
     else:
-        json = requests.get(URL + '/documenttypes').json()
+        url_call = URL + '/documenttypes'
+    if verbose:
+        print(f'API call: {url_call}')
+    json = requests.get(url_call).json()
     return dict(sorted({
         d["subtypeName"]: d["documentSubtypeID"]
         for d in json if d["subtypeName"]}.items()))
@@ -334,13 +336,14 @@ def list_series(jurisdictionID=None, documentType=None):
         for s in json}.items()))
 
 
-def list_dates(jurisdictionID):
+def list_dates(jurisdictionID, verbose=0):
     """
     Args: jurisdictionID: ID for the jurisdiction
 
     Returns: list of dates available for the jurisdiction
     """
-    return sorted(get_periods(jurisdictionID)['periodCode'].unique())
+    return sorted(get_periods(
+        jurisdictionID, verbose=verbose)['periodCode'].unique())
 
 
 def list_agencies(jurisdictionID=None, keyword=None):
