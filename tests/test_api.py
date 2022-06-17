@@ -16,21 +16,21 @@ def order_results(results, column, descending=False):
 def test_get_series():
     results = rc.get_series(verbose=1)
     assert order_results(results, 'seriesID') == [
-        1, 2, 3, 4, 5, 6, 7, 9, 10, 11
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10
     ]
 
 
 def test_get_agencies():
     results = rc.get_agencies(jurisdictionID=38, verbose=1)
     assert order_results(results, 'agencyID') == [
-        0, 3, 5, 6, 7, 8, 9, 11, 12, 13
+        0, 9519, 9520, 9521, 9522, 9523, 9524, 9525, 9526, 9527
     ]
 
 
 def test_get_agencies_keyword():
     results = rc.get_agencies(keyword='Education', verbose=1)
     assert order_results(results, 'agencyID') == [
-        52, 216, 225, 226, 238, 267, 285, 296, 356, 358
+        46, 47, 48, 263, 264, 270, 271, 286, 394, 403
     ]
 
 
@@ -68,6 +68,14 @@ def test_get_documents_jurisdiction():
     ]
 
 
+def test_get_documents_missing_jurisdiction(capsys):
+    results = rc.get_documents(date=2020, jurisdictionID=None, verbose=1)
+    assert not results
+    assert capsys.readouterr().out == (
+        'Must include either "jurisdictionID and date" or "documentID."\n'
+    )
+
+
 def test_get_documents_document_id():
     results = rc.get_documents(date=2020, documentID=3800000001, verbose=1)
     assert results['documentReference'].values[0] == (
@@ -96,13 +104,12 @@ def test_get_document_values():
 
 def test_get_reading_time():
     results = rc.get_reading_time(
-        jurisdiction=38, date=2021, documentType=2, country=True)
+        jurisdiction=20, date=[2015, 2021], documentType=1, verbose=1
+    )
     assert order_results(results, 'seriesValue') == [
-        '10 weeks, 2 days', '10 weeks, 3 days, 2 hours',
-        '10 weeks, 3 days, 6 hours', '10 weeks, 4 days',
-        '10 weeks, 4 days, 6 hours', '11 weeks',
-        '11 weeks, 1 day, 3 hours', '11 weeks, 1 day, 7 hours',
-        '11 weeks, 3 days, 7 hours', '11 weeks, 4 days, 2 hours'
+        '23 weeks, 4 days',
+        '23 weeks, 7 hours',
+        '31 weeks, 2 days, 2 hours'
     ]
 
 
@@ -134,7 +141,7 @@ def test_get_values_multiple_jurisdiction_names():
 
 def test_get_values_all_industries():
     results = rc.get_values(
-        series=9, jurisdiction=58, date=2019, filtered=False
+        series=28, jurisdiction=58, date=2019, filtered=False
     )
     assert order_results(results, 'seriesValue', descending=True) == [
         2399.6540837686553, 2346.9849032768325,
@@ -147,7 +154,7 @@ def test_get_values_all_industries():
 
 def test_get_values_multiple_industries():
     results = rc.get_values(
-        series=9, jurisdiction=58, date=2019, industry=['22', '49', '50']
+        series=28, jurisdiction=58, date=2019, industry=['22', '49', '50']
     )
     assert order_results(results, 'seriesValue') == [
         50.07550010907289, 649.0292048707197, 811.9319063696239
@@ -156,14 +163,32 @@ def test_get_values_multiple_industries():
 
 def test_get_values_one_industry():
     results = rc.get_document_values(
-        series=9, jurisdiction=20, date='2021-06-02', industry='42'
+        series=28, jurisdiction=58, date='2019-05-15', industry='22'
     )
     assert order_results(results, 'seriesValue', descending=True) == [
-        0.9973999857902527, 0.9355999827384949,
-        0.906499981880188, 0.7311000227928162,
-        0.6862999796867371, 0.49320000410079956,
-        0.2345000058412552, 0.21660000085830688,
-        0.21389999985694885, 0.14239999651908875
+        0.9902999997138977, 0.9789999723434448,
+        0.9735000133514404, 0.9034000039100647,
+        0.847599983215332, 0.6302000284194946,
+        0.5533000230789185, 0.3864000141620636,
+        0.3547999858856201, 0.3547999858856201
+    ]
+
+
+def test_get_values_4digit_industries():
+    results = rc.get_values(
+        series=28, jurisdiction=38, date=2019, filtered=False, industryLevel=4
+    )
+    assert order_results(results, 'seriesValue', descending=True) == [
+        48819.60270605631,
+        19666.03264030083,
+        18530.05033682113,
+        15972.102057352553,
+        15476.846815471901,
+        15132.83348125431,
+        6506.98745361498,
+        6490.635489263841,
+        6228.529536121532,
+        5282.724979804712
     ]
 
 
@@ -191,23 +216,24 @@ def test_get_values_multiple_dates():
 
 
 def test_get_values_incorrect_dates(capsys):
-    results = rc.get_values(series=1, jurisdiction=38, date=None)
+    results = rc.get_values(series=1, jurisdiction=38, date=None, verbose=1)
     assert not results
     assert capsys.readouterr().out == (
-        'Valid date is required. Select from the following list:\n')
+        'Valid date is required. Select from the following list:\n'
+        'API call: https://api.quantgov.org/seriesperiod?jurisdiction=38\n')
 
 
 def test_get_values_country():
     results = rc.get_values(series=1, jurisdiction=38, date=2019, country=True)
     assert order_results(results, 'seriesValue') == [
-        43940.0, 51925.0, 52569.0, 60086.0, 63735.0,
-        70969.0, 78676.0, 92522.0, 104562.0, 107063.0
+        43940.0, 50646.0, 51925.0, 52569.0, 60086.0,
+        63735.0, 70969.0, 78004.0, 82706.0, 92522.0
     ]
 
 
 def test_get_values_agency():
-    results = rc.get_values(series=13, jurisdiction=66, date=2021, agency=3112)
-    assert order_results(results, 'seriesValue') == [40141.0]
+    results = rc.get_values(series=13, jurisdiction=66, date=2021, agency=8777)
+    assert order_results(results, 'seriesValue') == [4305.0]
 
 
 def test_get_values_all_agencies():
@@ -215,16 +241,15 @@ def test_get_values_all_agencies():
         series=13, jurisdiction=66, date=2021
     )
     assert order_results(results, 'seriesValue') == [
-        555.0, 2025.0, 2035.0, 3085.0, 3849.0,
-        4771.0, 5235.0, 5399.0, 6119.0, 6783.0
+        0.0, 1.0, 1.0, 2.0, 2.0, 2.0, 4.0, 4.0, 5.0, 5.0
     ]
 
 
 def test_get_values_multiple_agencies():
     results = rc.get_values(
-        series=13, jurisdiction=66, date=2021, agency=[3112, 3113]
+        series=13, jurisdiction=66, date=2021, agency=[8777, 8813]
     )
-    assert order_results(results, 'seriesValue') == [17304.0, 40141.0]
+    assert order_results(results, 'seriesValue') == [3311.0, 4305.0]
 
 
 def test_get_values_version():
@@ -236,7 +261,7 @@ def test_get_values_version():
 
 def test_get_values_download():
     results = rc.get_values(
-        series=13, jurisdiction=66, date=2021, agency=3112, download='test.csv'
+        series=13, jurisdiction=66, date=2021, agency=8777, download='test.csv'
     )
     assert not results
     assert os.path.exists('test.csv')
@@ -245,7 +270,7 @@ def test_get_values_download():
 
 def test_get_values_incorrect_download(capsys):
     results = rc.get_values(
-        series=13, jurisdiction=66, date=2021, agency=3112, download=True
+        series=13, jurisdiction=66, date=2021, agency=8777, download=True
     )
     assert not results
     assert capsys.readouterr().out == 'Valid outpath required to download.\n'
@@ -274,8 +299,7 @@ def test_list_document_types():
 
 def test_list_document_types_jurisdiction():
     results = rc.list_document_types(jurisdictionID=38)
-    assert results[
-        'Regulation text US Electronic Code of Federal Regulations'] == 5
+    assert results['Regulation text All regulations'] == 1
 
 
 def test_list_series():
@@ -288,22 +312,19 @@ def test_list_dates():
     assert list(reversed(results))[:12] == [
         '2021-05-11', '2021',
         '2020-04-28', '2020',
-        '2018-05-23', '2018',
-        '2017-01-01', '2017',
-        '2016-01-01', '2016',
-        '2015-01-01', '2015'
+        '2019-07-01', '2019',
+        '2018-05-23', '2018'
     ]
 
 
 def test_list_agencies():
     results = rc.list_agencies(jurisdictionID=66)
-    assert results['department of health'] == 3112
+    assert results['wild animals'] == 8867
 
 
 def test_list_agencies_keyword():
     results = rc.list_agencies(keyword='Education')
-    assert results[
-        'california educational facilities authority (California)'] == 2094
+    assert results['california department of education (California)'] == 3576
 
 
 def test_list_agencies_error(capsys):
