@@ -269,7 +269,7 @@ def get_documents(documentID=None, jurisdictionID=None, date=None,
     Args:
         documentID: ID of the specific document
         jurisdictionID: ID for the jurisdiction
-        date: Year of the documents
+        date: Year(s) of the documents
         documentType (optional): ID for type of document
 
     Returns: pandas dataframe with the metadata
@@ -282,7 +282,14 @@ def get_documents(documentID=None, jurisdictionID=None, date=None,
     else:
         print('Must include either "jurisdictionID and date" or "documentID."')
         return
-    url_call += f'&date={date}'
+    if type(date) == list:
+        url_call += f'&date={",".join(str(i) for i in date)}'
+        if len(date) == 2:
+            url_call += '&dateIsRange=true'
+        else:
+            url_call += '&dateIsRange=false'
+    else:
+        url_call += f'&date={date}'
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(requests.get(url_call).json()))
