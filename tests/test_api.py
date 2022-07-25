@@ -242,6 +242,7 @@ def test_get_values_all_agencies():
     )
     assert order_results(results, 'seriesValue') == [
         0.0, 1.0, 1.0, 2.0, 2.0, 2.0, 4.0, 4.0, 5.0, 5.0
+    ]
 
 
 def test_get_values_multiple_agencies():
