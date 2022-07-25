@@ -343,14 +343,14 @@ def list_series(jurisdictionID=None, documentType=None):
         for s in json}.items()))
 
 
-def list_dates(jurisdictionID, verbose=0):
+def list_dates(jurisdictionID, documentType=None, verbose=0):
     """
     Args: jurisdictionID: ID for the jurisdiction
 
     Returns: list of dates available for the jurisdiction
     """
     return sorted(get_periods(
-        jurisdictionID, verbose=verbose)['periodCode'].unique())
+        jurisdictionID, documentType, verbose=verbose)['periodCode'].unique())
 
 
 def list_agencies(jurisdictionID=None, keyword=None):
