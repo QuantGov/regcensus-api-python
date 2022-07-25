@@ -7,6 +7,8 @@ RegCensusAPI is an API client that connects to the RegData regulatory restrictio
 
 This Python API client connects to the api located at at the [QuantGov website][1]. More advanced users who want to interact with the API directly can use the link above to pull data from the RegData API. R users can access the same features provided in this package in the R package __regcensusAPI__.
 
+We put together a short video tutorial, showing some of the basics of the API library. You can view that [here][4].
+
 ## Installing and Importing __RegCensus__
 
 The RegCensus Python library is pip installable:
@@ -27,28 +29,24 @@ The API organizes data around __document types__, which are then divided into __
 
 A fundamental concept in RegData is the "document." In RegData, a set of documents represents a body of regulations for which we have produced regulatory restriction counts. For example, to produce data on regulatory restrictions imposed by the US Federal government, RegData uses the Code of Federal Regulations (CFR) as the source documents. Within the CFR, RegData identifies a unit of regulation as the title-part combination. The CFR is organized into 50 titles, and within each title are parts, which could have subparts, but not always. Under the parts are sections. Determining this unit of analyses is critical for the context of the data produced by RegData. Producing regulatory restriction data for US states follows the same strategy but uses the state-specific regulatory code.
 
-In requesting data through the API, you must specify the document type and the indicate a preference for *summary* or *document-level*. By default, RegCensus API returns summarized data for the period of interest. This means that if you do not specify the *summary* preference, you will receive the summarized data for a period. The __get_periods__ helper function (described below) returns the periods available for each series.
+In requesting data through the API, you must specify the document type and the indicate a preference for *summary* or *document-level*. By default, RegCensus API returns summarized data for the date of interest. This means that if you do not specify the *summary* preference, you will receive the summarized data for a date. The __get_series__ helper function (described below) returns the dates available for each series.
 
-RegCensus API defines a number of periods depending on the series. For example, the total restrictions series of Federal regulations uses two main periods: daily and annual. The daily data produces the number of regulatory restrictions issued on a particular date by the US Federal government. The same data are available on an annual basis.
+RegCensus API defines a number of dates depending on the series. For example, the total restrictions series of Federal regulations uses two main dates: daily and annual. The daily data produces the number of regulatory restrictions issued on a particular date by the US Federal government. The same data are available on an annual basis.
 
-There are five helper functions to retrieve information about these key components of regdata. These functions provider the following information: document types, jurisdictions, series, agencies, and periods with data. The list functions begin with __list__.
+There are five helper functions to retrieve information about these key components of regdata. These functions provider the following information: document types, jurisdictions, series, agencies, and dates with data. The list functions begin with __list__.
 
 Each document type comprises one or more *series*. The __list_series__ function returns the list of all series when no series id is provided. 
 
 ```
-rc.list_jurisdictions(jurisdictionID = 38)
+rc.list_series(jurisdictionID = 38)
 ```
 
 Listing the jurisdictions is another great place to start. If you are looking for data for a specifc jurisdiction(s), this function
 will return the jurisdiction_id for all jurisdiction, which is key for retrieving data on any individual jurisdiction.
 
-The __get_periods__ function returns a list of all series and the years with data available for each jurisdiction. 
+The __get_series__ function returns a list of all series and the years with data available for each jurisdiction. 
 
 The output from this function can serve as a reference for the valid values that can be passed to parameters in the __get_values__ function. The number of records returned is the unique combination of series and jurisdictions that are available in RegData. The function takes the optional argument jurisdiction id.
-
-```
-rc.get_periods(jurisdictionID = 38)
-```
 
 ## Metadata
 The __get_*__ functions return the details about RegData metadata. These metadata are not included in the __get_values__ functions that will be described later. 
@@ -63,30 +61,52 @@ rc.get_jurisdictions()
 
 ### Agencies
 
-The __get_agencies__ function returns a data frame of all agencies with data in RegData. If an ID is supplied, the data frame returns the details about a single agency specified by the id. The data frame includes characteristics of the agencies. Currently, agency data are only available for federal RegData.
+The __get_agencies__ function returns a data frame of agencies with data in RegData. Either the `jurisdictionID` or `keyword` arguments must be supplied. If `jurisdictionID` is passed, the data frame will include information for all agencies in that jurisdiction. If `keyword` is supplied, the data frame will include information for all agencies whose name contains the keyword.
+
+The following code snippet will return data for all agencies in the Federal United States:
 
 ```
-rc.get_agencies()
+rc.get_agencies(jurisdiction = 38)
+```
+
+Likewise, this code snippet will return data for all agencies (in any jurisdiction) containing the word "education" (not case sensitive):
+
+```
+rc.get_agencies(keyword = 'education')
 ```
 
 Use the value of the agency_id field when pulling values with the __get_values__ function.
 
 ### Industries
 
-The __get_industries__ function returns a data frame of industries with data in the API. Presently the only classification system available is the North American Industry Classification System (NAICS). NAICS is used for both countries in North America and Australia, even the latter uses the Australia and New Zealand Standard Industrial Classification (ANZSIC) system. Presently, industry regulations for Australia are based on the NAICS. RegData expands to other countries, the industry codes will be country specific as well as contain mapping to the Standard Industry Codes (SIC) system.
+The __get_industries__ function returns a data frame of industries with data in the API. The available standards include the North American Industry Classification System (NAICS), the Bereau of Economic Analysis system (BEA), and the Standard Occupational Classification System (SOC). By default, the function only returns a data frame with 3-digit NAICS industries. The `codeLevel` and `standard` arguments can be used to select from other classifications.
+
+The following line will get you industry information for all 4-digit NAICS industries:
 
 ```
-rc.get_industries(38)
+rc.get_industries(codeLevel = 4)
+```
+
+This line will get you information for the BEA industries:
+
+```
+rc.get_industries(standard = 'BEA')
+```
+
+Like the __get_agencies__ function, the `keyword` argument may also be used. The following code snippet will return information for all 6-digit NAICS industries with the word "fishing" in the name:
+
+```
+rc.get_industries(keyword = 'fishing', codeLevel = 6)
 ```
 
 ### Documents
 
-The __get_documents__ function returns a data frame with metadata for document-level data. The fucntion takes two parameters, jurisdictionID (required) and documentType (default value of 3, which is "all regulations").
+The __get_documents__ function returns a data frame with metadata for document-level data. The fucntion takes two parameters, jurisdictionID (required) and documentType (default value of 1, which is "all regulations").
 
 The following line will get metadata for documents associated with U.S. Federal healthcare regulations.
 
 ```
-rc.get_documents(jurisdictionID = 38, documentType = 1)
+rc.get_documents(jurisdictionID = 38, documentType = 3)
 ```
 
 ## Values
@@ -102,11 +122,12 @@ The __get_values__ function is the primary function for obtaining RegData from t
 * filtered (optional) - specify if poorly-performing industry results should be excluded. Default is True.
 * summary (optional) - specify if summary results should be returned, instead of document-level results. Default is True.
 * country (optional) - specify if all values for a country's jurisdiction ID should be returned. Default is False.
-* industryType (optional): level of NAICS industries to include. Default is '3-Digit'.
+* industryLevel (optional): level of NAICS industries to include. Default is 3.
+* version (optional): Version ID for datasets with multiple versions, if no ID is given, API returns most recent version
 * download (optional): if not False, a path location for a downloaded csv of the results.
 * verbose (optional) - value specifying how much debugging information should be printed for each function call. Higher number specifies more information, default is 0.
 
-In the example below, we are interested in the total number of restrictions and total number of words for the US (get_jurisdictions(38)) for the period 2010 to 2019.
+In the example below, we are interested in the total number of restrictions and total number of words for the US (get_jurisdictions(38)) for the dates 2010 to 2019.
 
 ```
 rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019])
@@ -130,7 +151,7 @@ To obtain the restrictions for a specific agency (or agencies), the series id su
 
 ```
 # Identify all agencies
-rc.list_agencies()
+rc.list_agencies(jurisdictionID)
 
 # Call the get_values() for this agency and series 91
 rc.get_values(series = 91, jurisdiction = 38, date = [1990, 2018], agency = [81, 84])
@@ -158,23 +179,39 @@ We can request the same data from above, but at the document level, using the fo
 rc.get_values(series = [1,2], jurisdiction = 38, date = ['2010-01-01', '2019-01-01'], summary=False)
 ```
 
-Note that for document-level queries, a full date (not just the year) is often required. See the __get_periods__ function for specifics by jurisdiction.
+Alternatively, we can use the  __get_document_values__ function as in the following code snippet.
+
+```
+rc.get_document_values(series = [1,2], jurisdiction = 38, date = ['2010-01-01', '2019-01-01'])
+```
+
+Note that for document-level queries, a full date (not just the year) is often required. See the __get_series__ function for specifics by jurisdiction.
+
+### Version
+
+_This currently applies to the RegData U.S. Annual project only._
+
+As of version 0.2.4, a version parameter can be passed to the __get_values__ function to obtained data from past versions of data (currently only for the RegData U.S. Annual project). Available versions and their associated versionIDs can be obtained by using the __get_version__ function. If no version parameter is given, the most recent version will be returned. The following code snippet will return restrictions data for the 3.2 version of RegData U.S. Annual for the years 2010 to 2019.
+
+```
+rc.get_values(series = 1, jurisdiction = 38, date = [2010, 2019], version = 1)
+```
 
 ### Merging with Metadata
 
-To minimize the network bandwidth requirements to use RegCensusAPI, the data returned by __get_values__ functions contain very minimal metadata. Once you pull the values by __get_values__, you can use the Pandas library to include the metadata.
+To minimize the network bandwidth requirements to use RegCensusAPI, the data returned by __get_values__ function contain very minimal metadata. Once you pull the values by __get_values__, you can use the Pandas library to include the metadata.
 
 Suppose we want to attach the agency names and other agency characteristics to the data from the last code snippet. First be sure to pull the list of agencies into a separate data frame. Then merge with the values data frame. The key for matching the data will be the *agency_id* column.
 
 We can merge the agency data with the values data as in the code snippet below.
 
 ```
-agencies = rc.get_agencies()
+agencies = rc.get_agencies(jurisdictionID = 38)
 agency_by_industry = rc.get_values(
     series = 92,
     jurisdiction = 38,
-    time = [1990, 2000], 
-    industry = [111, 33], 
+    time = [1990, 2000],
+    industry = [111, 33],
     agency = [66, 111])
 agency_restrictions_ind = agency_by_industry.merge(
     agencies, by='agency_id')
@@ -195,3 +232,4 @@ rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019], download='
 [1]:https://api.quantgov.org/swagger-ui.html
 [2]:https://www.quantgov.org/download-interactively
 [3]:https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
+[4]:https://mercatus.wistia.com/medias/1hxnkfjnxa
