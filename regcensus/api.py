@@ -11,7 +11,7 @@ URL = 'https://api.quantgov.org'
 
 
 def get_values(series, jurisdiction, date, documentType=None, summary=True,
-               dateIsRange=True, country=False, agency=None,
+               dateIsRange=True, country=False, agency=None, cluster=None,
                industry=None, filtered=True, industryLevel=None, version=None,
                download=False, verbose=0):
     """
@@ -83,6 +83,12 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
         url_call += f'&agency={",".join(str(i) for i in agency)}'
     elif agency:
         url_call += f'&agency={agency}'
+
+    # If multiple clusters are given, parses the list into a string
+    if type(cluster) == list:
+        url_call += f'&cluster={",".join(str(i) for i in cluster)}'
+    elif cluster:
+        url_call += f'&cluster={cluster}'
 
     # If multiple industries are given, parses the list into a string
     if type(industry) == list:
@@ -374,6 +380,17 @@ def list_agencies(jurisdictionID=None, keyword=None):
         return dict(sorted({
             a["agencyName"]: a["agencyID"]
             for a in json if a["agencyName"]}.items()))
+
+
+def list_clusters():
+    """
+    Returns: dictionary containing names of clusters and associated IDs
+    """
+    url_call = URL + '/clusters'
+    json = requests.get(url_call).json()
+    return dict(sorted({
+        a["clusterName"]: a["agencyCluster"]
+        for a in json if a["clusterName"]}.items()))
 
 
 def list_jurisdictions():
