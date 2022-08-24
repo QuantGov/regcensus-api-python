@@ -336,22 +336,26 @@ def list_document_types(jurisdictionID=None, verbose=0):
         for d in json if d["subtypeName"]}.items()))
 
 
-def list_series(jurisdictionID=None, documentType=None):
+def list_series(jurisdictionID, documentType=None):
     """
-    Args: jurisdictionID (optional): ID for the jurisdiction
+    Args:
+        jurisdictionID: ID for the jurisdiction
+        documentType (optional): ID for type of document
 
     Returns: dictionary containing names of series and associated IDs
     """
-    url_call = series_url(jurisdictionID, documentType)
+    url_call = periods_url(jurisdictionID, documentType)
     json = requests.get(url_call).json()
     return dict(sorted({
-        s["seriesName"]: s["seriesID"]
+        s["series"]["seriesName"]: s["series"]["seriesID"]
         for s in json}.items()))
 
 
 def list_dates(jurisdictionID, documentType=None, verbose=0):
     """
-    Args: jurisdictionID: ID for the jurisdiction
+    Args:
+        jurisdictionID: ID for the jurisdiction
+        documentType (optional): ID for type of document
 
     Returns: list of dates available for the jurisdiction
     """
