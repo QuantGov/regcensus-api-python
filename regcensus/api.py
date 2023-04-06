@@ -1,3 +1,4 @@
+import json
 import re
 import requests
 import pandas as pd
@@ -7,10 +8,10 @@ pp = pprint.PrettyPrinter()
 
 date_format = re.compile(r'\d{4}(?:-\d{2}-\d{2})?')
 
-URL = 'https://api.quantgov.org'
+URL = 'https://64gzqlrrd2.execute-api.us-east-1.amazonaws.com/dev'
 
 
-def get_values(series, jurisdiction, date, documentType=None, summary=True,
+def get_values(series, jurisdiction, year, documentType=1, summary=True,
                dateIsRange=True, country=False, agency=None, cluster=None,
                industry=None, filtered=True, industryLevel=None, version=None,
                download=False, verbose=0):
@@ -20,7 +21,7 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
     Args:
         jurisdiction: Jurisdiction ID(s) (name may also be passed)
         series: Series ID(s)
-        date: Year(s) of data
+        year: Year(s) of data
         documentType (optional): ID for type of document
         summary (optional): Return summary instead of document level data
         dateIsRange (optional): Indicating whether the time parameter is range
@@ -46,12 +47,15 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
     Returns empty if required parameters are not given
     """
 
+    # Use /datafinder endpoint to get the appropriate values endpoint
+    endpoint = get_endpoint(series, jurisdiction, year, summary)
+    url_call = URL + endpoint + '?'
+
     # If multiple series are given, parses the list into a string
     if type(series) == list:
-        url_call = (
-            URL + f'/summary?series={",".join(str(i) for i in series)}')
+        url_call += f'series={",".join(str(i) for i in series)}'
     elif type(series) in [int, str]:
-        url_call = URL + f'/summary?series={series}'
+        url_call += f'series={series}'
     # If no appropriate series is given, prints warning message and
     # list of available series, and function returns empty.
     else:
@@ -99,17 +103,15 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
     if industryLevel:
         url_call += f'&labelLevel={industryLevel}'
 
-    # If multiple dates are given, parses the list into a string
-    if type(date) == list:
-        url_call += f'&date={",".join(str(i) for i in date)}'
-        # Force dateIsRange to be false if more than 2 dates are given
-        if len(date) > 2:
-            dateIsRange = False
+    # If multiple years are given, parses the list into a string
+    if type(year) == list:
+        # If dateIsRange, parses the list to include all years
+        if dateIsRange and len(year) == 2:
+            year = range(int(year[0]), int(year[1]) + 1)
+        url_call += f'&year={",".join(str(i) for i in year)}'
     # Checks to see if date is in correct format
-    elif date_format.match(str(date)):
-        url_call += f'&date={date}'
-        # Force dateIsRange to be false if only 1 date is given
-        dateIsRange = False
+    elif date_format.match(str(year)):
+        url_call += f'&year={year}'
     # If no appropriate date is given, prints warning message and
     # list of available dates for the given jurisdiction(s),
     # and function returns empty.
@@ -118,9 +120,6 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
         dates = list_dates(jurisdiction, verbose=verbose)
         pp.pprint(dates)
         return
-
-    if dateIsRange:
-        url_call += '&dateIsRange=true'
 
     # Allows for document-level data to be retrieved.
     # Includes warning message explaning that this query may take a while.
@@ -139,7 +138,7 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
 
     # Adds documentType argument (default is 1 in API)
     if documentType:
-        url_call += f'&documentType={documentType}'
+        url_call += f'&documenttype={documentType}'
 
     # Adds country argument if country-level data is requested
     if country:
@@ -154,9 +153,9 @@ def get_values(series, jurisdiction, date, documentType=None, summary=True,
         print(f'API call: {url_call.replace(" ", "%20")}')
 
     # Puts flattened JSON output into a pandas DataFrame
-    output = json_normalize(requests.get(url_call).json())
+    output = json_normalize(json.loads(requests.get(url_call).json()))
     # Prints error message if call fails
-    if (output.columns[:3] == ['title', 'status', 'detail']).all():
+    if False:#(output.columns[:3] == ['title', 'status', 'detail']).all():
         print('WARNING:', output.iloc[0][-1])
         return
     elif download:
@@ -183,12 +182,35 @@ def get_reading_time(*args, **kwargs):
     Convert word counts to total reading time
     """
     results = get_values(series=2, *args, **kwargs)
-    results['seriesName'] = 'Reading Time'
-    results['seriesValue'] = results['seriesValue'].apply(reading_time)
+    results['series_name'] = 'Reading Time'
+    results['series_value'] = results['series_value'].apply(reading_time)
     results['footNote'] = (
         'Reading time calculation assumes an 8 hour work-day, '
         'a 5 day work-week, and a 50 week work-year.')
     return results
+
+
+def get_datafinder(jurisdiction, documentType=None):
+    if documentType:
+        return json_normalize(json.loads(requests.get(
+            URL + (f'/datafinder?jurisdiction={jurisdiction}&'
+                   f'documentType={documentType}')
+        ).json()))
+    else:
+        return json_normalize(json.loads(requests.get(
+            URL + f'/datafinder?jurisdiction={jurisdiction}'
+        ).json()))
+
+
+def get_endpoint(series, jurisdiction, year, summary=True):
+    if type(year) == list:
+        year = [int(y) for y in year]
+    datafinder = clean_columns(get_datafinder(jurisdiction)).query(
+        f'series_id == {series} and year == {year}')
+    if summary:
+        return datafinder.summary_endpoints.values[0]
+    else:
+        return datafinder.document_endpoints.values[0]
 
 
 def get_series(jurisdictionID=None, documentType=None, verbose=0):
@@ -202,7 +224,8 @@ def get_series(jurisdictionID=None, documentType=None, verbose=0):
     url_call = series_url(jurisdictionID, documentType)
     if verbose:
         print(f'API call: {url_call}')
-    return clean_columns(json_normalize(requests.get(url_call).json()))
+    return clean_columns(json_normalize(
+        json.loads(requests.get(url_call).json())))
 
 
 def get_periods(jurisdictionID=None, documentType=None, verbose=0):
@@ -216,7 +239,8 @@ def get_periods(jurisdictionID=None, documentType=None, verbose=0):
     url_call = periods_url(jurisdictionID, documentType)
     if verbose:
         print(f'API call: {url_call}')
-    return clean_columns(json_normalize(requests.get(url_call).json()))
+    return clean_columns(json_normalize(
+        json.loads(requests.get(url_call).json())))
 
 
 def get_agencies(jurisdictionID=None, keyword=None, verbose=0):
@@ -232,7 +256,8 @@ def get_agencies(jurisdictionID=None, keyword=None, verbose=0):
         return
     if verbose:
         print(f'API call: {url_call}')
-    return clean_columns(json_normalize(requests.get(url_call).json()))
+    return clean_columns(json_normalize(
+        json.loads(requests.get(url_call).json())))
 
 
 def get_jurisdictions(jurisdictionID=None, verbose=0):
@@ -246,7 +271,8 @@ def get_jurisdictions(jurisdictionID=None, verbose=0):
     url_call = jurisdictions_url(jurisdictionID)
     if verbose:
         print(f'API call: {url_call}')
-    return clean_columns(json_normalize(requests.get(url_call).json()))
+    return clean_columns(json_normalize(
+        json.loads(requests.get(url_call).json())))
 
 
 def get_industries(keyword=None, codeLevel=3, standard=None, verbose=0):
@@ -263,7 +289,8 @@ def get_industries(keyword=None, codeLevel=3, standard=None, verbose=0):
     url_call = industries_url(keyword, codeLevel, standard)
     if verbose:
         print(f'API call: {url_call}')
-    return clean_columns(json_normalize(requests.get(url_call).json()))
+    return clean_columns(json_normalize(
+        json.loads(requests.get(url_call).json())))
 
 
 def get_documents(documentID=None, jurisdictionID=None, date=None,
@@ -298,7 +325,8 @@ def get_documents(documentID=None, jurisdictionID=None, date=None,
         url_call += f'&date={date}'
     if verbose:
         print(f'API call: {url_call}')
-    return clean_columns(json_normalize(requests.get(url_call).json()))
+    return clean_columns(json_normalize(
+        json.loads(requests.get(url_call).json())))
 
 
 def get_versions(jurisdictionID, documentType=1, verbose=0):
@@ -315,7 +343,17 @@ def get_versions(jurisdictionID, documentType=1, verbose=0):
                       f'documentType={documentType}')
     if verbose:
         print(f'API call: {url_call}')
-    return clean_columns(json_normalize(requests.get(url_call).json()))
+    return clean_columns(json_normalize(
+        json.loads(requests.get(url_call).json())))
+
+
+def get_documentation():
+    """
+    Get documentation for projects, including citations.
+    """
+    return clean_columns(json_normalize(json.loads(requests.get(
+        URL + '/documentation'
+    ).json())))
 
 
 def list_document_types(jurisdictionID=None, verbose=0):
@@ -330,10 +368,10 @@ def list_document_types(jurisdictionID=None, verbose=0):
         url_call = URL + '/documenttypes'
     if verbose:
         print(f'API call: {url_call}')
-    json = requests.get(url_call).json()
+    content = json.loads(requests.get(url_call).json())
     return dict(sorted({
-        d["subtypeName"]: d["documentSubtypeID"]
-        for d in json if d["subtypeName"]}.items()))
+        d["document_type"]: d["document_type_id"]
+        for d in content if d["document_type"]}.items()))
 
 
 def list_series(jurisdictionID, documentType=None):
@@ -344,11 +382,11 @@ def list_series(jurisdictionID, documentType=None):
 
     Returns: dictionary containing names of series and associated IDs
     """
-    url_call = periods_url(jurisdictionID, documentType)
-    json = requests.get(url_call).json()
+    url_call = series_url(jurisdictionID, documentType)
+    content = json.loads(requests.get(url_call).json())
     return dict(sorted({
-        s["series"]["seriesName"]: s["series"]["seriesID"]
-        for s in json}.items()))
+        s["series_name"]: s["series_id"]
+        for s in content}.items()))
 
 
 def list_dates(jurisdictionID, documentType=None, verbose=0):
@@ -359,8 +397,8 @@ def list_dates(jurisdictionID, documentType=None, verbose=0):
 
     Returns: list of dates available for the jurisdiction
     """
-    return sorted(get_periods(
-        jurisdictionID, documentType, verbose=verbose)['periodCode'].unique())
+    return sorted(get_datafinder(
+        jurisdictionID, documentType)['year'].unique())
 
 
 def list_agencies(jurisdictionID=None, keyword=None):
@@ -374,16 +412,16 @@ def list_agencies(jurisdictionID=None, keyword=None):
     url_call = agency_url(jurisdictionID, keyword)
     if not url_call:
         return
-    json = requests.get(url_call).json()
+    content = json.loads(requests.get(url_call).json())
     # Add jurisdiction name to key if keyword is used
     if keyword:
         return dict(sorted({
-            f'{a["agencyName"]} ({a["jurisdictionName"]})': a["agencyID"]
-            for a in json if a["agencyName"]}.items()))
+            f'{a["agency_name"]} ({a["jurisdiction_name"]})': a["agency_id"]
+            for a in content if a["agency_name"]}.items()))
     else:
         return dict(sorted({
-            a["agencyName"]: a["agencyID"]
-            for a in json if a["agencyName"]}.items()))
+            a["agency_name"]: a["agency_id"]
+            for a in content if a["agency_name"]}.items()))
 
 
 def list_clusters():
@@ -391,10 +429,10 @@ def list_clusters():
     Returns: dictionary containing names of clusters and associated IDs
     """
     url_call = URL + '/clusters'
-    json = requests.get(url_call).json()
+    content = json.loads(requests.get(url_call).json())
     return dict(sorted({
-        a["clusterName"]: a["agencyCluster"]
-        for a in json if a["clusterName"]}.items()))
+        a["cluster_name"]: a["agency_cluster"]
+        for a in content if a["cluster_name"]}.items()))
 
 
 def list_jurisdictions():
@@ -402,9 +440,9 @@ def list_jurisdictions():
     Returns: dictionary containing names of jurisdictions and associated IDs
     """
     url_call = jurisdictions_url(None)
-    json = requests.get(url_call).json()
+    content = json.loads(requests.get(url_call).json())
     return dict(sorted({
-        j["jurisdictionName"]: j["jurisdictionID"] for j in json}.items()))
+        j["jurisdiction_name"]: j["jurisdiction_id"] for j in content}.items()))
 
 
 def list_industries(keyword=None, codeLevel=3, standard='NAICS', onlyID=False):
@@ -418,19 +456,19 @@ def list_industries(keyword=None, codeLevel=3, standard='NAICS', onlyID=False):
     Returns: dictionary containing names of industries and associated IDs
     """
     url_call = industries_url(keyword, codeLevel, standard)
-    json = requests.get(url_call).json()
+    content = json.loads(requests.get(url_call).json())
     # If industry has codes, include the code in the key
     try:
         if onlyID:
             return dict(sorted({
-                i["industryCode"]: i["industryID"] for i in json}.items()))
+                i["label_code"]: i["label_id"] for i in content}.items()))
         else:
             return dict(sorted({
-                f'{i["industryName"]} ({i["industryCode"]})':
-                i["industryID"] for i in json}.items()))
+                f'{i["label_name"]} ({i["label_code"]})':
+                i["label_id"] for i in content}.items()))
     except KeyError:
         return dict(sorted({
-            i["industryName"]: i["industryID"] for i in json}.items()))
+            i["label_name"]: i["label_id"] for i in content}.items()))
 
 
 def series_url(jurisdictionID, documentType=None):
@@ -464,10 +502,10 @@ def periods_url(jurisdictionID, documentType=None):
 def agency_url(jurisdictionID, keyword):
     """Gets url call for agencies endpoint."""
     if keyword:
-        url_call = URL + (f'/agencies/keyword?'
+        url_call = URL + (f'/agencies-keyword?'
                           f'keyword={keyword}')
     elif jurisdictionID:
-        url_call = URL + (f'/agencies/jurisdictions?'
+        url_call = URL + (f'/agencies?'
                           f'jurisdiction={jurisdictionID}')
     else:
         print('Must include either "jurisdictionID" or "keyword."')
@@ -487,18 +525,18 @@ def industries_url(keyword, codeLevel, standard):
     """Gets url call for label (formerly industries) endpoint."""
     if keyword:
         url_call = (
-            URL + f'/label/keyword?'
+            URL + f'/labels?'
                   f'codeLevel={codeLevel}&keyword={keyword}')
     else:
-        url_call = URL + f'/label?codeLevel={codeLevel}'
+        url_call = URL + f'/labels?codeLevel={codeLevel}'
     if standard:
         url_call += f'&standard={standard}'
     return url_call
 
 
 def clean_columns(df):
-    """Removes JSON prefixes from column names"""
-    df.columns = [c.split('.')[-1] for c in df.columns]
+    """Removes prefixes from column names"""
+    df.columns = [c.split('v_')[-1] for c in df.columns]
     return df
 
 
