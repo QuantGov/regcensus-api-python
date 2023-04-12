@@ -14,16 +14,18 @@ URL = 'https://64gzqlrrd2.execute-api.us-east-1.amazonaws.com/dev'
 def get_values(series, jurisdiction, year, documentType=1, summary=True,
                dateIsRange=True, country=False, agency=None, cluster=None,
                industry=None, filtered=True, industryLevel=None, version=None,
-               download=False, verbose=0):
+               download=False, page=None, verbose=0):
     """
-    Get values for a specific jurisdiction and series
+    Get values for a specific jurisdiction, series, and year
 
     Args:
         jurisdiction: Jurisdiction ID(s) (name may also be passed)
         series: Series ID(s)
         year: Year(s) of data
-        documentType (optional): ID for type of document
-        summary (optional): Return summary instead of document level data
+        documentType (optional): ID for type of document,
+            e.g. 1 is regulations, 2 is statutes
+        summary (optional): Return summary instead of document level data,
+            only one year of data is allowed for document level data
         dateIsRange (optional): Indicating whether the time parameter is range
             or should be treated as single data points
         country (optional): Get values for all subjurisdictions
@@ -46,9 +48,27 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
 
     Returns empty if required parameters are not given
     """
+    # If multiple jurisdiction names are given, find list of IDs
+    if type(jurisdiction) == list and re.search(r'\D', str(jurisdiction[0])):
+        jurisdiction = [list_jurisdictions()[i] for i in jurisdiction]
+    # If jurisdiction name is passed, find ID
+    elif jurisdiction and re.search(r'\D', str(jurisdiction)):
+        jurisdiction = list_jurisdictions()[jurisdiction]
 
     # Use /datafinder endpoint to get the appropriate values endpoint
-    endpoint = get_endpoint(series, jurisdiction, year, summary)
+    try:
+        endpoint = get_endpoint(
+            series, jurisdiction, year, documentType, summary)
+    # If endpoint is not found with given parameters, print datafinder table
+    except IndexError:
+        print('No data was found for these parameters. '
+              'For this jurisdiction, consider the following:\n')
+        with pd.option_context(
+                'display.max_rows', None, 'display.max_columns', None):
+            print(get_datafinder(jurisdiction, documentType)[[
+                'series', 'jurisdiction',
+                'year', 'documentType']].to_string(index=False))
+            return
     url_call = URL + endpoint + '?'
 
     # If multiple series are given, parses the list into a string
@@ -63,13 +83,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         pp.pprint(list_series())
         return
 
-    # If multiple jurisdiction names are given, find list of IDs
-    if type(jurisdiction) == list and re.search(r'\D', str(jurisdiction[0])):
-        jurisdiction = [list_jurisdictions()[i] for i in jurisdiction]
-    # If jurisdiction name is passed, find ID
-    elif jurisdiction and re.search(r'\D', str(jurisdiction)):
-        jurisdiction = list_jurisdictions()[jurisdiction]
-     # If multiple jurisdiction IDs are given, parses the list into a string
+    # If multiple jurisdiction IDs are given, parses the list into a string
     if type(jurisdiction) == list:
         url_call += f'&jurisdiction={",".join(str(i) for i in jurisdiction)}'
     # If jurisdiction is just an ID, use jurisdiction
@@ -154,9 +168,23 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
 
     # Puts flattened JSON output into a pandas DataFrame
     output = json_normalize(json.loads(requests.get(url_call).json()))
+
+    # If output is truncated, paginates until all data is found
+    if len(output) == 5000 and not page:
+        full_output = output
+        page = 1
+        while len(output) == 5000:
+            if verbose:
+                print(f'Output truncated, found page {page}')
+            page += 1
+            output = json_normalize(json.loads(requests.get(
+                url_call + f'&page={page}').json()))
+            full_output = full_output.append(output)
+        output = full_output
+
     # Prints error message if call fails
-    if False:#(output.columns[:3] == ['title', 'status', 'detail']).all():
-        print('WARNING:', output.iloc[0][-1])
+    if False:
+        # NEED TO FIGURE OUT HOW TO HANDLE ERRORS HERE
         return
     elif download:
         if type(download) == str:
@@ -192,21 +220,25 @@ def get_reading_time(*args, **kwargs):
 
 def get_datafinder(jurisdiction, documentType=None):
     if documentType:
-        return json_normalize(json.loads(requests.get(
+        output = clean_columns(json_normalize(json.loads(requests.get(
             URL + (f'/datafinder?jurisdiction={jurisdiction}&'
-                   f'documentType={documentType}')
-        ).json()))
+                   f'documenttype={documentType}')
+        ).json())))
     else:
-        return json_normalize(json.loads(requests.get(
+        output = clean_columns(json_normalize(json.loads(requests.get(
             URL + f'/datafinder?jurisdiction={jurisdiction}'
-        ).json()))
+        ).json())))
+    return output.rename({
+        'jurisdiction_id': 'jurisdiction',
+        'document_type_id': 'documentType',
+        'series_id': 'series'}, axis=1)
 
 
-def get_endpoint(series, jurisdiction, year, summary=True):
+def get_endpoint(series, jurisdiction, year, documentType, summary=True):
     if type(year) == list:
         year = [int(y) for y in year]
-    datafinder = clean_columns(get_datafinder(jurisdiction)).query(
-        f'series_id == {series} and year == {year}')
+    datafinder = get_datafinder(jurisdiction, documentType).query(
+        f'series == {series} and year == {year}')
     if summary:
         return datafinder.summary_endpoints.values[0]
     else:
@@ -293,7 +325,7 @@ def get_industries(keyword=None, labellevel=3, labelsource=None, verbose=0):
         json.loads(requests.get(url_call).json())))
 
 
-def get_documents(documentID=None, jurisdictionID=None, year=None,
+def get_documents(documentID=None, jurisdictionID=None, date=None,
                   documentType=1, verbose=0):
     """
     Get metadata for documents available in a specific jurisdiction or
@@ -308,25 +340,20 @@ def get_documents(documentID=None, jurisdictionID=None, year=None,
     Returns: pandas dataframe with the metadata
     """
     if documentID:
-        url_call = URL + f'/documentMetadata/documents?documentID={documentID}'
-    elif jurisdictionID and year:
-        url_call = URL + (f'/documentMetadata?jurisdiction={jurisdictionID}&'
-                          f'documentType={documentType}')
-    else:
-        print('Must include either "jurisdictionID and date" or "documentID."')
+        print('documentID is no longer accessible as of version X.XX. '
+              'Use previous version of API or use jurisdictionID and date '
+              'combination')
         return
-    if type(year) == list:
-        url_call += f'&year={",".join(str(i) for i in year)}'
-        if len(year) == 2:
-            url_call += '&dateIsRange=true'
-        else:
-            url_call += '&dateIsRange=false'
+    elif jurisdictionID and date:
+        return get_values(
+            series=1,
+            jurisdiction=jurisdictionID,
+            year=date,
+            documentType=documentType,
+            summary=False)
     else:
-        url_call += f'&year={year}'
-    if verbose:
-        print(f'API call: {url_call}')
-    return clean_columns(json_normalize(
-        json.loads(requests.get(url_call).json())))
+        print('Must include "jurisdictionID and date"')
+        return
 
 
 def get_versions(jurisdictionID, documentType=1, verbose=0):
@@ -389,7 +416,7 @@ def list_series(jurisdictionID, documentType=None):
         for s in content}.items()))
 
 
-def list_dates(jurisdictionID, documentType=None, verbose=0):
+def list_dates(jurisdictionID, documentType=None):
     """
     Args:
         jurisdictionID: ID for the jurisdiction
