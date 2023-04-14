@@ -65,9 +65,8 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
               'For this jurisdiction, consider the following:\n')
         with pd.option_context(
                 'display.max_rows', None, 'display.max_columns', None):
-            print(get_datafinder(jurisdiction, documentType)[[
-                'series', 'jurisdiction',
-                'year', 'documentType']].to_string(index=False))
+            print(get_datafinder(
+                jurisdiction, documentType).to_string(index=False))
             return
     url_call = URL + endpoint + '?'
 
@@ -110,8 +109,10 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
 
     # If multiple industries are given, parses the list into a string
     if type(industry) == list:
+        industry = [list_industries(onlyID=True)[str(i)] for i in industry]
         url_call += f'&label={",".join(str(i) for i in industry)}'
     elif industry:
+        industry = list_industries(onlyID=True)[str(industry)]
         url_call += f'&label={industry}'
     # Specify level of industry (NAICS only)
     if industryLevel:
@@ -219,6 +220,12 @@ def get_reading_time(*args, **kwargs):
 
 
 def get_datafinder(jurisdiction, documentType=None):
+    """
+    Get API info for a specific jurisdition and documentType
+
+    Returns: pandas dataframe with the series and years available,
+             along with the endpoints to access the data
+    """
     if documentType:
         output = clean_columns(json_normalize(json.loads(requests.get(
             URL + (f'/datafinder?jurisdiction={jurisdiction}&'
@@ -235,14 +242,23 @@ def get_datafinder(jurisdiction, documentType=None):
 
 
 def get_endpoint(series, jurisdiction, year, documentType, summary=True):
+    """
+    Get endpoint for a specific series, jurisdition, year, documentType combo
+
+    Returns the endpoint, e.g. '/state-summary' for summary-level state data
+    """
     if type(year) == list:
         year = [int(y) for y in year]
     datafinder = get_datafinder(jurisdiction, documentType).query(
         f'series == {series} and year == {year}')
     if summary:
-        return datafinder.summary_endpoints.values[0]
+        endpoint = datafinder.summary_endpoints.values[0]
     else:
-        return datafinder.document_endpoints.values[0]
+        endpoint = datafinder.document_endpoints.values[0]
+        # Handles document-level industry calls
+        if not endpoint:
+            endpoint = datafinder.label_endpoints.values[0]
+    return endpoint
 
 
 def get_series(jurisdictionID=None, documentType=None, verbose=0):
@@ -383,7 +399,7 @@ def get_documentation():
     ).json())))
 
 
-def list_document_types(jurisdictionID=None, verbose=0):
+def list_document_types(jurisdictionID=None, reverse=False, verbose=0):
     """
     Args: jurisdictionID (optional): ID for the jurisdiction
 
@@ -396,12 +412,17 @@ def list_document_types(jurisdictionID=None, verbose=0):
     if verbose:
         print(f'API call: {url_call}')
     content = json.loads(requests.get(url_call).json())
-    return dict(sorted({
-        d["document_type"]: d["document_type_id"]
-        for d in content if d["document_type"]}.items()))
+    if reverse:
+        return dict(sorted({
+            d["document_type_id"]: d["document_type"]
+            for d in content if d["document_type"]}.items()))
+    else:
+        return dict(sorted({
+            d["document_type"]: d["document_type_id"]
+            for d in content if d["document_type"]}.items()))
 
 
-def list_series(jurisdictionID, documentType=None):
+def list_series(jurisdictionID, documentType=None, reverse=False):
     """
     Args:
         jurisdictionID: ID for the jurisdiction
@@ -411,9 +432,14 @@ def list_series(jurisdictionID, documentType=None):
     """
     url_call = series_url(jurisdictionID, documentType)
     content = json.loads(requests.get(url_call).json())
-    return dict(sorted({
-        s["series_name"]: s["series_id"]
-        for s in content}.items()))
+    if reverse:
+        return dict(sorted({
+            s["series_id"]: s["series_name"]
+            for s in content}.items()))
+    else:
+        return dict(sorted({
+            s["series_name"]: s["series_id"]
+            for s in content}.items()))
 
 
 def list_dates(jurisdictionID, documentType=None):
@@ -428,7 +454,7 @@ def list_dates(jurisdictionID, documentType=None):
         jurisdictionID, documentType)['year'].unique())
 
 
-def list_agencies(jurisdictionID=None, keyword=None):
+def list_agencies(jurisdictionID=None, keyword=None, reverse=False):
     """
     Args:
         jurisdictionID: ID for the jurisdiction
@@ -441,38 +467,57 @@ def list_agencies(jurisdictionID=None, keyword=None):
         return
     content = json.loads(requests.get(url_call).json())
     # Add jurisdiction name to key if keyword is used
-    if keyword:
-        return dict(sorted({
-            f'{a["agency_name"]} ({a["jurisdiction_name"]})': a["agency_id"]
-            for a in content if a["agency_name"]}.items()))
+    if reverse:
+        if keyword:
+            return dict(sorted({
+                a["agency_id"]:
+                    f'{a["agency_name"]} ({a["jurisdiction_name"]})'
+                for a in content if a["agency_name"]}.items()))
+        else:
+            return dict(sorted({
+                a["agency_id"]: a["agency_name"]
+                for a in content if a["agency_name"]}.items()))
     else:
         return dict(sorted({
             a["agency_name"]: a["agency_id"]
             for a in content if a["agency_name"]}.items()))
 
 
-def list_clusters():
+def list_clusters(reverse=False):
     """
     Returns: dictionary containing names of clusters and associated IDs
     """
     url_call = URL + '/clusters'
     content = json.loads(requests.get(url_call).json())
-    return dict(sorted({
-        a["cluster_name"]: a["agency_cluster"]
-        for a in content if a["cluster_name"]}.items()))
+    if reverse:
+        return dict(sorted({
+            a["agency_cluster"]: a["cluster_name"]
+            for a in content if a["cluster_name"]}.items()))
+    else:
+        return dict(sorted({
+            a["cluster_name"]: a["agency_cluster"]
+            for a in content if a["cluster_name"]}.items()))
 
 
-def list_jurisdictions():
+def list_jurisdictions(reverse=False):
     """
     Returns: dictionary containing names of jurisdictions and associated IDs
     """
     url_call = jurisdictions_url(None)
     content = json.loads(requests.get(url_call).json())
-    return dict(sorted({
-        j["jurisdiction_name"]: j["jurisdiction_id"] for j in content}.items()))
+    if reverse:
+        return dict(sorted({
+            j["jurisdiction_id"]: j["jurisdiction_name"]
+            for j in content}.items()))
+    else:
+        return dict(sorted({
+            j["jurisdiction_name"]: j["jurisdiction_id"]
+            for j in content}.items()))
 
 
-def list_industries(keyword=None, labellevel=3, labelsource='NAICS', onlyID=False):
+def list_industries(
+        keyword=None, labellevel=3, labelsource='NAICS',
+        onlyID=False, reverse=False):
     """
     Args:
         keyword: search for keyword in industry name
@@ -487,15 +532,28 @@ def list_industries(keyword=None, labellevel=3, labelsource='NAICS', onlyID=Fals
     # If industry has codes, include the code in the key
     try:
         if onlyID:
+            if reverse:
+                return dict(sorted({
+                    i["label_id"]: i["label_code"] for i in content}.items()))
+            else:
+                return dict(sorted({
+                    i["label_code"]: i["label_id"] for i in content}.items()))
+        else:
+            if reverse:
+                return dict(sorted({
+                    i["label_id"]: f'{i["label_name"]} ({i["label_code"]})'
+                    for i in content}.items()))
+            else:
+                return dict(sorted({
+                    f'{i["label_name"]} ({i["label_code"]})': i["label_id"]
+                    for i in content}.items()))
+    except KeyError:
+        if reverse:
             return dict(sorted({
-                i["label_code"]: i["label_id"] for i in content}.items()))
+                i["label_id"]: i["label_name"] for i in content}.items()))
         else:
             return dict(sorted({
-                f'{i["label_name"]} ({i["label_code"]})':
-                i["label_id"] for i in content}.items()))
-    except KeyError:
-        return dict(sorted({
-            i["label_name"]: i["label_id"] for i in content}.items()))
+                i["label_name"]: i["label_id"] for i in content}.items()))
 
 
 def series_url(jurisdictionID, documentType=None):
