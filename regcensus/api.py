@@ -15,7 +15,8 @@ URL = 'https://64gzqlrrd2.execute-api.us-east-1.amazonaws.com/dev'
 
 def get_values(series, jurisdiction, year, documentType=1, summary=True,
                dateIsRange=True, country=False, agency=None, cluster=None,
-               industry=None, filtered=True, industryLevel=None, version=None,
+               industry=None, filtered=True, industryLevel=None,
+               labelsource='NAICS', version=None,
                download=False, page=None, verbose=0):
     """
     Get values for a specific jurisdiction, series, and year
@@ -111,10 +112,12 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
 
     # If multiple industries are given, parses the list into a string
     if type(industry) == list:
-        industry = [list_industries(onlyID=True)[str(i)] for i in industry]
+        if labelsource == 'NAICS':
+            industry = [list_industries(onlyID=True)[str(i)] for i in industry]
         url_call += f'&label={",".join(str(i) for i in industry)}'
     elif industry:
-        industry = list_industries(onlyID=True)[str(industry)]
+        if labelsource == 'NAICS':
+            industry = list_industries(onlyID=True)[str(industry)]
         url_call += f'&label={industry}'
     # Specify level of industry (NAICS only)
     if industryLevel:
@@ -266,7 +269,7 @@ def get_endpoint(series, jurisdiction, year, documentType, summary=True):
 
 
 @Memoized
-def get_series(jurisdictionID=None, documentType=None, verbose=0):
+def get_series(verbose=0):
     """
     Get series metadata for all or one specific jurisdiction
 
@@ -274,7 +277,7 @@ def get_series(jurisdictionID=None, documentType=None, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = series_url(jurisdictionID, documentType)
+    url_call = series_url()
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(
@@ -338,8 +341,8 @@ def get_industries(keyword=None, labellevel=3, labelsource=None, verbose=0):
 
     Args:
         keyword: search for keyword in industry name
-        codeLevel: NAICS level (2 to 6-digit)
-        standard: classification standard (NAICS, BEA, SOC)
+        labellevel: NAICS level (2 to 6-digit)
+        labelsource: classification standard (NAICS, BEA, SOC)
 
     Returns: pandas dataframe with the metadata
     """
@@ -436,7 +439,7 @@ def list_document_types(jurisdictionID=None, reverse=False, verbose=0):
 
 
 @Memoized
-def list_series(jurisdictionID, documentType=None, reverse=False):
+def list_series(reverse=False):
     """
     Args:
         jurisdictionID: ID for the jurisdiction
@@ -444,7 +447,7 @@ def list_series(jurisdictionID, documentType=None, reverse=False):
 
     Returns: dictionary containing names of series and associated IDs
     """
-    url_call = series_url(jurisdictionID, documentType)
+    url_call = series_url()
     content = json.loads(requests.get(url_call).json())
     if reverse:
         return dict(sorted({
@@ -575,18 +578,9 @@ def list_industries(
                 i["label_name"]: i["label_id"] for i in content}.items()))
 
 
-def series_url(jurisdictionID, documentType=None):
-    """Gets url call for series endpoint."""
-    url_call = URL + '/dataseries'
-    if jurisdictionID and documentType:
-        url_call += (
-            f'?jurisdiction={jurisdictionID}&'
-            f'documentType={documentType}')
-    elif jurisdictionID:
-        url_call += f'?jurisdiction={jurisdictionID}'
-    elif documentType:
-        url_call += f'?documentType={documentType}'
-    return url_call
+def series_url():
+    """Gets url call for dataseries endpoint."""
+    return URL + '/dataseries'
 
 
 def periods_url(jurisdictionID, documentType=None):

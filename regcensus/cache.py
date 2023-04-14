@@ -9,16 +9,16 @@ class Memoized(object):
    def __init__(self, func):
       self.func = func
       self.cache = {}
-   def __call__(self, *args):
+   def __call__(self, *args, **kwargs):
       if not isinstance(args, collections.abc.Hashable):
          # uncacheable. a list, for instance.
          # better to not cache than blow up.
-         return self.func(*args)
-      if args in self.cache:
-         return self.cache[args]
+         return self.func(*args, **kwargs)
+      if str(args) in self.cache:
+         return self.cache[str(args), str(kwargs)]
       else:
-         value = self.func(*args)
-         self.cache[args] = value
+         value = self.func(*args, **kwargs)
+         self.cache[str(args), str(kwargs)] = value
          return value
    def __repr__(self):
       '''Return the function's docstring.'''
