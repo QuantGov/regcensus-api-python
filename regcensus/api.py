@@ -4,6 +4,8 @@ import requests
 import pandas as pd
 import pprint
 
+from regcensus.cache import Memoized
+
 pp = pprint.PrettyPrinter()
 
 date_format = re.compile(r'\d{4}(?:-\d{2}-\d{2})?')
@@ -219,6 +221,7 @@ def get_reading_time(*args, **kwargs):
     return results
 
 
+@Memoized
 def get_datafinder(jurisdiction, documentType=None):
     """
     Get API info for a specific jurisdition and documentType
@@ -241,6 +244,7 @@ def get_datafinder(jurisdiction, documentType=None):
         'series_id': 'series'}, axis=1)
 
 
+@Memoized
 def get_endpoint(series, jurisdiction, year, documentType, summary=True):
     """
     Get endpoint for a specific series, jurisdition, year, documentType combo
@@ -261,6 +265,7 @@ def get_endpoint(series, jurisdiction, year, documentType, summary=True):
     return endpoint
 
 
+@Memoized
 def get_series(jurisdictionID=None, documentType=None, verbose=0):
     """
     Get series metadata for all or one specific jurisdiction
@@ -276,6 +281,7 @@ def get_series(jurisdictionID=None, documentType=None, verbose=0):
         json.loads(requests.get(url_call).json())))
 
 
+@Memoized
 def get_periods(jurisdictionID=None, documentType=None, verbose=0):
     """
     Get date metadata for all or one specific jurisdiction
@@ -291,6 +297,7 @@ def get_periods(jurisdictionID=None, documentType=None, verbose=0):
         json.loads(requests.get(url_call).json())))
 
 
+@Memoized
 def get_agencies(jurisdictionID=None, keyword=None, verbose=0):
     """
     Get metadata for all agencies of a specific jurisdiction
@@ -308,6 +315,7 @@ def get_agencies(jurisdictionID=None, keyword=None, verbose=0):
         json.loads(requests.get(url_call).json())))
 
 
+@Memoized
 def get_jurisdictions(jurisdictionID=None, verbose=0):
     """
     Get metadata for all or one specific jurisdiction
@@ -323,6 +331,7 @@ def get_jurisdictions(jurisdictionID=None, verbose=0):
         json.loads(requests.get(url_call).json())))
 
 
+@Memoized
 def get_industries(keyword=None, labellevel=3, labelsource=None, verbose=0):
     """
     Get metadata for all industries available in a specific jurisdiction
@@ -341,6 +350,7 @@ def get_industries(keyword=None, labellevel=3, labelsource=None, verbose=0):
         json.loads(requests.get(url_call).json())))
 
 
+@Memoized
 def get_documents(documentID=None, jurisdictionID=None, date=None,
                   documentType=1, verbose=0):
     """
@@ -372,6 +382,7 @@ def get_documents(documentID=None, jurisdictionID=None, date=None,
         return
 
 
+@Memoized
 def get_versions(jurisdictionID, documentType=1, verbose=0):
     """
     Get metadata for versions available in a specific jurisdiction.
@@ -390,6 +401,7 @@ def get_versions(jurisdictionID, documentType=1, verbose=0):
         json.loads(requests.get(url_call).json())))
 
 
+@Memoized
 def get_documentation():
     """
     Get documentation for projects, including citations.
@@ -399,6 +411,7 @@ def get_documentation():
     ).json())))
 
 
+@Memoized
 def list_document_types(jurisdictionID=None, reverse=False, verbose=0):
     """
     Args: jurisdictionID (optional): ID for the jurisdiction
@@ -422,6 +435,7 @@ def list_document_types(jurisdictionID=None, reverse=False, verbose=0):
             for d in content if d["document_type"]}.items()))
 
 
+@Memoized
 def list_series(jurisdictionID, documentType=None, reverse=False):
     """
     Args:
@@ -442,6 +456,7 @@ def list_series(jurisdictionID, documentType=None, reverse=False):
             for s in content}.items()))
 
 
+@Memoized
 def list_dates(jurisdictionID, documentType=None):
     """
     Args:
@@ -454,6 +469,7 @@ def list_dates(jurisdictionID, documentType=None):
         jurisdictionID, documentType)['year'].unique())
 
 
+@Memoized
 def list_agencies(jurisdictionID=None, keyword=None, reverse=False):
     """
     Args:
@@ -483,6 +499,7 @@ def list_agencies(jurisdictionID=None, keyword=None, reverse=False):
             for a in content if a["agency_name"]}.items()))
 
 
+@Memoized
 def list_clusters(reverse=False):
     """
     Returns: dictionary containing names of clusters and associated IDs
@@ -499,6 +516,7 @@ def list_clusters(reverse=False):
             for a in content if a["cluster_name"]}.items()))
 
 
+@Memoized
 def list_jurisdictions(reverse=False):
     """
     Returns: dictionary containing names of jurisdictions and associated IDs
@@ -515,6 +533,7 @@ def list_jurisdictions(reverse=False):
             for j in content}.items()))
 
 
+@Memoized
 def list_industries(
         keyword=None, labellevel=3, labelsource='NAICS',
         onlyID=False, reverse=False):
