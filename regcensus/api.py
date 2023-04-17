@@ -15,7 +15,7 @@ URL = 'https://64gzqlrrd2.execute-api.us-east-1.amazonaws.com/dev'
 
 def get_values(series, jurisdiction, year, documentType=1, summary=True,
                dateIsRange=True, country=False, agency=None, cluster=None,
-               industry=None, filtered=True, industryLevel=None,
+               label=None, filtered=True, labellevel=3,
                labelsource='NAICS', version=None,
                download=False, page=None, verbose=0):
     """
@@ -34,12 +34,13 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         country (optional): Get values for all subjurisdictions
         agency (optional): Agency ID (if no ID is passed and the series
             contains agency data, returns data for all agencies)
-        industry (optional): Industry code using the jurisdiction-specific
+        label (formerly industry) (optional):
+            Industry code using the jurisdiction-specific
             coding system (returns all 3-digit industries by default)
         filtered (optional): Exclude poorly-performing industry results
             (use of unfiltered results is NOT recommended)
-        industryLevel (optional): Level of NAICS industries to include
-            (default is 3 in the API)
+        labellevel (formerly industryLevel) (optional):
+            Level of NAICS industries to include
         version (optional): Version ID for datasets with multiple versions
             (if no ID is given, returns most recent version)
         download (optional): If not False, a path location for a
@@ -111,17 +112,21 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         url_call += f'&cluster={cluster}'
 
     # If multiple industries are given, parses the list into a string
-    if type(industry) == list:
+    if type(label) == list:
         if labelsource == 'NAICS':
-            industry = [list_industries(onlyID=True)[str(i)] for i in industry]
-        url_call += f'&label={",".join(str(i) for i in industry)}'
-    elif industry:
+            label = [list_industries(labellevel=labellevel,
+                                     labelsource=labelsource,
+                                     onlyID=True)[str(i)] for i in label]
+        url_call += f'&label={",".join(str(i) for i in label)}'
+    elif label:
         if labelsource == 'NAICS':
-            industry = list_industries(onlyID=True)[str(industry)]
-        url_call += f'&label={industry}'
+            label = list_industries(labellevel=labellevel,
+                                    labelsource=labelsource,
+                                    onlyID=True)[str(label)]
+        url_call += f'&label={label}'
     # Specify level of industry (NAICS only)
-    if industryLevel:
-        url_call += f'&labelLevel={industryLevel}'
+    if labellevel:
+        url_call += f'&labelLevel={labellevel}'
 
     # If multiple years are given, parses the list into a string
     if type(year) == list:
@@ -144,14 +149,14 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
     # Allows for document-level data to be retrieved.
     # Includes warning message explaning that this query may take a while.
     if not summary:
-        if industry:
+        if label:
             print('WARNING: Returning document-level industry results. '
                   'This query make take several minutes.')
         url_call = url_call.replace('/summary', '/documents')
 
     # Allows for unfiltered industry results to be retrieved. Includes
     # warning message explaining that these results should not be trusted.
-    if industry and not filtered:
+    if label and not filtered:
         print('WARNING: Returning unfiltered industry results. '
               'Use of these results is NOT recommended.')
         url_call += '&filteredOnly=false'
@@ -162,18 +167,31 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
 
     # Adds country argument if country-level data is requested
     if country:
-        url_call += '&national=True'
+        print('WARNING: Country is has been deprecated')
 
     # Adds version argument if different version is requested
     if version:
-        url_call += f'&version={version}'
+        # url_call += f'&version={version}'
+        print('WARNING: Version is not yet implemented')
 
     # Prints the url call if verbosity is flagged
     if verbose:
         print(f'API call: {url_call.replace(" ", "%20")}')
 
+    # Allows user to manually select a page of the output
+    # If page is not passed, pagination is done automatically (see below)
+    # for output larger than 5000 rows
+    if page:
+        url_call += f'&page={page}'
+
     # Puts flattened JSON output into a pandas DataFrame
-    output = json_normalize(json.loads(requests.get(url_call).json()))
+    try:
+        json_output = requests.get(url_call).json()
+        output = json_normalize(json.loads(json_output))
+    # Prints error message if call errors
+    except TypeError:
+        print_error(json_output)
+        return
 
     # If output is truncated, paginates until all data is found
     if len(output) == 5000 and not page:
@@ -188,11 +206,8 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
             full_output = full_output.append(output)
         output = full_output
 
-    # Prints error message if call fails
-    if False:
-        # NEED TO FIGURE OUT HOW TO HANDLE ERRORS HERE
-        return
-    elif download:
+    # If download path is given, write csv instead of returning dataframe
+    if download:
         if type(download) == str:
             clean_columns(output).to_csv(download, index=False)
         else:
@@ -644,6 +659,12 @@ def json_normalize(output):
         return pd.json_normalize(output)
     except AttributeError:
         return pd.io.json.json_normalize(output)
+
+
+def print_error(output):
+    """Handle and print out error for invalid API call"""
+    print('ERROR:', output['message'])
+    return
 
 
 def reading_time(words, workday=8, workweek=5, workyear=50):
