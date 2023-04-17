@@ -14,7 +14,7 @@ class Memoized(object):
          # uncacheable. a list, for instance.
          # better to not cache than blow up.
          return self.func(*args, **kwargs)
-      if str(args) in self.cache:
+      if (str(args), str(kwargs)) in self.cache:
          return self.cache[str(args), str(kwargs)]
       else:
          value = self.func(*args, **kwargs)
