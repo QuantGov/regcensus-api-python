@@ -15,7 +15,8 @@ URL = 'https://64gzqlrrd2.execute-api.us-east-1.amazonaws.com/dev'
 
 def get_values(series, jurisdiction, year, documentType=1, summary=True,
                dateIsRange=True, country=False, agency=None, cluster=None,
-               label=None, filtered=True, labellevel=3,
+               label=None, industry=None, filtered=True,
+               labellevel=3, industryLevel=None,
                labelsource='NAICS', version=None,
                download=False, page=None, verbose=0):
     """
@@ -111,6 +112,13 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
     elif cluster:
         url_call += f'&cluster={cluster}'
 
+    # Display deprecation message and rename industry args
+    if industry:
+        print('WARNING: industry is deprecated; use label')
+        label = industry
+    if industryLevel:
+        print('WARNING: industryLevel is deprecated; use labellevel')
+        labellevel = industryLevel
     # If multiple industries are given, parses the list into a string
     if type(label) == list:
         if labelsource == 'NAICS':
@@ -167,12 +175,12 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
 
     # Adds country argument if country-level data is requested
     if country:
-        print('WARNING: Country is has been deprecated')
+        print('WARNING: country is deprecated')
 
     # Adds version argument if different version is requested
     if version:
         # url_call += f'&version={version}'
-        print('WARNING: Version is not yet implemented')
+        print('WARNING: version is temporarily deprecated')
 
     # Prints the url call if verbosity is flagged
     if verbose:
