@@ -18,7 +18,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
                label=None, industry=None, filtered=True,
                labellevel=3, industryLevel=None,
                labelsource='NAICS', version=None,
-               download=False, page=None, verbose=0):
+               download=False, page=None, date=None, verbose=0):
     """
     Get values for a specific jurisdiction, series, and year
 
@@ -53,11 +53,15 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
 
     Returns empty if required parameters are not given
     """
+    if date:
+        print('WARNING: date is deprecated, use year')
+        return
+
     # If multiple jurisdiction names are given, find list of IDs
-    if type(jurisdiction) == list and re.search(r'\D', str(jurisdiction[0])):
+    if type(jurisdiction) == list and re.search(r'[A-Za-z]', str(jurisdiction[0])):
         jurisdiction = [list_jurisdictions()[i] for i in jurisdiction]
     # If jurisdiction name is passed, find ID
-    elif jurisdiction and re.search(r'\D', str(jurisdiction)):
+    elif jurisdiction and re.search(r'[A-Za-z]', str(jurisdiction)):
         jurisdiction = list_jurisdictions()[jurisdiction]
 
     # Use /datafinder endpoint to get the appropriate values endpoint
