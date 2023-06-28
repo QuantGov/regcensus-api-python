@@ -58,7 +58,8 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         return
 
     # If multiple jurisdiction names are given, find list of IDs
-    if type(jurisdiction) == list and re.search(r'[A-Za-z]', str(jurisdiction[0])):
+    if type(jurisdiction) == list and re.search(
+            r'[A-Za-z]', str(jurisdiction[0])):
         jurisdiction = [list_jurisdictions()[i] for i in jurisdiction]
     # If jurisdiction name is passed, find ID
     elif jurisdiction and re.search(r'[A-Za-z]', str(jurisdiction)):
@@ -293,6 +294,8 @@ def get_endpoint(series, jurisdiction, year, documentType, summary=True):
     """
     if type(year) == list:
         year = [int(y) for y in year]
+    if type(series) == list:
+        series = [int(s) for s in series]
     datafinder = get_datafinder(jurisdiction, documentType).query(
         f'series == {series} and year == {year}')
     try:
