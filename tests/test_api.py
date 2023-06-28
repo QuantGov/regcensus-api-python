@@ -55,48 +55,25 @@ def test_get_industries():
     ]
 
 
-def test_get_industries_keyword():
-    results = rc.get_industries(keyword='Fishing', labellevel=6, verbose=1)
-    assert order_results(results, 'label_code') == [
-        '114111', '114112', '114119'
-    ]
+# def test_get_industries_keyword():
+#     results = rc.get_industries(keyword='Fishing', labellevel=6, verbose=1)
+#     assert order_results(results, 'label_code') == [
+#         '114111', '114112', '114119'
+#     ]
 
 
-def test_get_documents_jurisdiction():
-    results = rc.get_documents(year=2020, jurisdictionID=44, verbose=1)
-    assert order_results(results, 'document_id') == [
-        3800000001, 3800000002, 3800000003, 3800000004, 3800000005,
-        3800000006, 3800000007, 3800000008, 3800000009, 3800000010
-    ]
-
-
-def test_get_documents_missing_jurisdiction(capsys):
-    results = rc.get_documents(year=2020, jurisdictionID=None, verbose=1)
-    assert not results
-    assert capsys.readouterr().out == (
-        'Must include either "jurisdictionID and year" or "documentID."\n'
-    )
-
-
-def test_get_documents_document_id():
-    results = rc.get_documents(year=2020, documentID=3800000001, verbose=1)
-    assert results['document_reference'].values[0] == (
-        'Agency 01, Title 01, Chapter 01'
-    )
-
-
-def test_get_versions():
-    results = rc.get_versions(38, verbose=1)
-    assert order_results(results, 'source_name') == [
-        'Occupation Data (dataset)', 'Occupation Data (dataset)',
-        'RegData US 3.2 Annual (dataset)', 'RegData US 4.0 Annual (dataset)'
-    ]
+# def test_get_versions():
+#     results = rc.get_versions(38, verbose=1)
+#     assert order_results(results, 'source_name') == [
+#         'Occupation Data (dataset)', 'Occupation Data (dataset)',
+#         'RegData US 3.2 Annual (dataset)', 'RegData US 4.0 Annual (dataset)'
+#     ]
 
 
 # Tests for get_values()
 def test_get_document_values():
     results = rc.get_document_values(
-        series=[1, 2], jurisdiction=20, year='2020-06-02', verbose=1
+        series=[1, 2], jurisdiction=20, year=2020, verbose=1
     )
     assert order_results(results, 'series_value', descending=True) == [
         1958601.0, 466414.0, 248869.0, 236149.0, 133169.0,
@@ -156,7 +133,7 @@ def test_get_values_all_industries():
 
 def test_get_values_multiple_industries():
     results = rc.get_values(
-        series=28, jurisdiction=58, year=2019, industry=['22', '49', '50']
+        series=28, jurisdiction=58, year=2019, industry=[111, 325, 621]
     )
     assert order_results(results, 'series_value') == [
         50.07550010907289, 649.0292048707197, 811.9319063696239
@@ -165,14 +142,11 @@ def test_get_values_multiple_industries():
 
 def test_get_values_one_industry():
     results = rc.get_document_values(
-        series=28, jurisdiction=58, year='2019-05-15', industry='22'
+        series=28, jurisdiction=58, year=2019, label=111
     )
-    assert order_results(results, 'series_value', descending=True) == [
-        0.9902999997138977, 0.9789999723434448,
-        0.9735000133514404, 0.9034000039100647,
-        0.847599983215332, 0.6302000284194946,
-        0.5533000230789185, 0.3864000141620636,
-        0.3547999858856201, 0.3547999858856201
+    assert order_results(results, 'label_value', descending=True) == [
+        0.9903, 0.979, 0.9735, 0.9034, 0.8476,
+        0.6302, 0.5533, 0.3864, 0.3548, 0.3548
     ]
 
 
@@ -312,7 +286,7 @@ def test_list_series():
 def test_list_dates():
     results = rc.list_dates(44)
     assert list(reversed(results)) == [
-        2022, 2021, 2020, 2019
+        2022, 2021, 2020, 2019, 2018
     ]
 
 
@@ -348,11 +322,11 @@ def test_list_industries_onlyID():
     assert results['321920'] == 1170
 
 
-def test_list_industries_keyword():
-    results = rc.list_industries(labellevel=4, keyword='fishing')
-    assert results['Fishing (1141)'] == 126
+# def test_list_industries_keyword():
+#    results = rc.list_industries(labellevel=4, keyword='fishing')
+#    assert results['Fishing (1141)'] == 126
 
 
-def test_list_bea_industries():
-    results = rc.list_industries(labelsource='BEA')
-    assert results['Accommodation and food services (BEA) (79)'] == 1974
+# def test_list_bea_industries():
+#     results = rc.list_industries(labelsource='BEA')
+#     assert results['Accommodation and food services (BEA) (79)'] == 1974

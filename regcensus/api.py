@@ -77,7 +77,17 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
             print(get_datafinder(
                 jurisdiction, documentType).to_string(index=False))
             return
-    url_call = URL + endpoint + '?'
+
+    if endpoint:
+        url_call = URL + endpoint + '?'
+    else:
+        print('No data was found for these parameters. '
+              'For this jurisdiction, consider the following:\n')
+        with pd.option_context(
+                'display.max_rows', None, 'display.max_columns', None):
+            print(get_datafinder(
+                jurisdiction, documentType).to_string(index=False))
+            return
 
     # If multiple series are given, parses the list into a string
     if type(series) == list:
@@ -285,14 +295,17 @@ def get_endpoint(series, jurisdiction, year, documentType, summary=True):
         year = [int(y) for y in year]
     datafinder = get_datafinder(jurisdiction, documentType).query(
         f'series == {series} and year == {year}')
-    if summary:
-        endpoint = datafinder.summary_endpoints.values[0]
-    else:
-        endpoint = datafinder.document_endpoints.values[0]
-        # Handles document-level industry calls
-        if not endpoint:
-            endpoint = datafinder.label_endpoints.values[0]
-    return endpoint
+    try:
+        if summary:
+            endpoint = datafinder.summary_endpoints.values[0]
+        else:
+            endpoint = datafinder.document_endpoints.values[0]
+            # Handles document-level industry calls
+            if not endpoint:
+                endpoint = datafinder.label_endpoints.values[0]
+        return endpoint
+    except Exception:
+        return
 
 
 @Memoized
@@ -305,22 +318,6 @@ def get_series(verbose=0):
     Returns: pandas dataframe with the metadata
     """
     url_call = series_url()
-    if verbose:
-        print(f'API call: {url_call}')
-    return clean_columns(json_normalize(
-        json.loads(requests.get(url_call).json())))
-
-
-@Memoized
-def get_periods(jurisdictionID=None, documentType=None, verbose=0):
-    """
-    Get date metadata for all or one specific jurisdiction
-
-    Args: jurisdictionID (optional): ID for the jurisdiction
-
-    Returns: pandas dataframe with the metadata
-    """
-    url_call = periods_url(jurisdictionID, documentType)
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(
@@ -346,7 +343,7 @@ def get_agencies(jurisdictionID=None, keyword=None, verbose=0):
 
 
 @Memoized
-def get_jurisdictions(jurisdictionID=None, verbose=0):
+def get_jurisdictions(verbose=0):
     """
     Get metadata for all or one specific jurisdiction
 
@@ -354,7 +351,7 @@ def get_jurisdictions(jurisdictionID=None, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = jurisdictions_url(jurisdictionID)
+    url_call = jurisdictions_url()
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(
@@ -551,7 +548,7 @@ def list_jurisdictions(reverse=False):
     """
     Returns: dictionary containing names of jurisdictions and associated IDs
     """
-    url_call = jurisdictions_url(None)
+    url_call = jurisdictions_url()
     content = json.loads(requests.get(url_call).json())
     if reverse:
         return dict(sorted({
@@ -610,20 +607,6 @@ def series_url():
     return URL + '/dataseries'
 
 
-def periods_url(jurisdictionID, documentType=None):
-    """Gets url call for series endpoint."""
-    url_call = URL + '/seriesperiod'
-    if jurisdictionID and documentType:
-        url_call += (
-            f'?jurisdiction={jurisdictionID}&'
-            f'documentType={documentType}')
-    elif jurisdictionID:
-        url_call += f'?jurisdiction={jurisdictionID}'
-    elif documentType:
-        url_call += f'?documentType={documentType}'
-    return url_call
-
-
 def agency_url(jurisdictionID, keyword):
     """Gets url call for agencies endpoint."""
     if keyword:
@@ -638,12 +621,9 @@ def agency_url(jurisdictionID, keyword):
     return url_call
 
 
-def jurisdictions_url(jurisdictionID):
+def jurisdictions_url():
     """Gets url call for jurisdictions endpoint."""
-    url_call = URL + '/jurisdictions/'
-    if jurisdictionID:
-        url_call += f'/specific?jurisdiction={jurisdictionID}'
-    return url_call
+    return URL + '/jurisdictions/'
 
 
 def industries_url(keyword, labellevel, labelsource):
@@ -675,7 +655,10 @@ def json_normalize(output):
 
 def print_error(output):
     """Handle and print out error for invalid API call"""
-    print('ERROR:', output['message'])
+    try:
+        print('ERROR:', output['message'])
+    except KeyError:
+        print('ERROR', output["errorMessage"])
     return
 
 
