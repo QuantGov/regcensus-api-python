@@ -82,12 +82,17 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
     if endpoint:
         url_call = URL + endpoint + '?'
     else:
-        print('No data was found for these parameters. '
-              'For this jurisdiction, consider the following:\n')
         with pd.option_context(
                 'display.max_rows', None, 'display.max_columns', None):
-            print(get_datafinder(
-                jurisdiction, documentType).to_string(index=False))
+            try:
+                print(
+                    'No data was found for these parameters. '
+                    'For this jurisdiction, consider the following:\n\n',
+                    get_datafinder(
+                        jurisdiction, documentType).to_string(index=False))
+            except TypeError:
+                print("Valid jurisdiction ID required. Consider the following:\n")
+                pp.pprint(list_jurisdictions())
             return
 
     # If multiple series are given, parses the list into a string
@@ -296,18 +301,18 @@ def get_endpoint(series, jurisdiction, year, documentType, summary=True):
         year = [int(y) for y in year]
     if type(series) == list:
         series = [int(s) for s in series]
-    datafinder = get_datafinder(jurisdiction, documentType).query(
-        f'series == {series} and year == {year}')
     try:
+        datafinder = get_datafinder(jurisdiction, documentType).query(
+            f'series == {series} and year == {year}')
         if summary:
             endpoint = datafinder.summary_endpoints.values[0]
         else:
             endpoint = datafinder.document_endpoints.values[0]
-            # Handles document-level industry calls
-            if not endpoint:
-                endpoint = datafinder.label_endpoints.values[0]
+        # Handles document-level industry calls
+        if not endpoint:
+            endpoint = datafinder.label_endpoints.values[0]
         return endpoint
-    except Exception:
+    except (KeyError, TypeError):
         return
 
 
@@ -512,21 +517,32 @@ def list_agencies(jurisdictionID=None, keyword=None, reverse=False):
     if not url_call:
         return
     content = json.loads(requests.get(url_call).json())
+
+    jurisdictions_df = get_jurisdictions()
+    jurisdiction_id_name = dict(zip(jurisdictions_df["jurisdiction_id"],
+                                    jurisdictions_df["jurisdiction_name"]))
+
     # Add jurisdiction name to key if keyword is used
     if reverse:
         if keyword:
             return dict(sorted({
                 a["agency_id"]:
-                    f'{a["agency_name"]} ({a["jurisdiction_name"]})'
+                    f'{a["agency_name"]} ({jurisdiction_id_name[int(a["a_jurisdiction_id"])]})'
                 for a in content if a["agency_name"]}.items()))
         else:
             return dict(sorted({
                 a["agency_id"]: a["agency_name"]
                 for a in content if a["agency_name"]}.items()))
     else:
-        return dict(sorted({
-            a["agency_name"]: a["agency_id"]
-            for a in content if a["agency_name"]}.items()))
+        if keyword:
+            return dict(sorted({
+                f'{a["agency_name"]} ({jurisdiction_id_name[int(a["a_jurisdiction_id"])]})':
+                    a["agency_id"]
+                for a in content if a["agency_name"]}.items()))
+        else:
+            return dict(sorted({
+                a["agency_name"]: a["agency_id"]
+                for a in content if a["agency_name"]}.items()))
 
 
 @Memoized
