@@ -13,6 +13,7 @@ __all__ = [
     'list_dates',
     'list_document_types',
     'list_agencies',
+    'list_clusters',
     'list_jurisdictions',
     'list_industries'
 ]
@@ -32,6 +33,7 @@ from . api import (
     list_dates,
     list_document_types,
     list_agencies,
+    list_clusters,
     list_jurisdictions,
     list_industries
 )
