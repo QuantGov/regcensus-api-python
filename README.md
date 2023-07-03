@@ -35,10 +35,10 @@ RegCensus API defines a number of dates depending on the series. For example, th
 
 There are five helper functions to retrieve information about these key components of regdata. These functions provider the following information: document types, jurisdictions, series, agencies, and dates with data. The list functions begin with __list__.
 
-Each document type comprises one or more *series*. The __list_series__ function returns the list of all series when no series id is provided. 
+Each document type comprises one or more *series*. The __list_series__ function returns the list of all series.
 
 ```
-rc.list_series(jurisdictionID = 38)
+rc.list_series()
 ```
 
 Listing the jurisdictions is another great place to start. If you are looking for data for a specifc jurisdiction(s), this function
@@ -66,7 +66,7 @@ The __get_agencies__ function returns a data frame of agencies with data in RegD
 The following code snippet will return data for all agencies in the Federal United States:
 
 ```
-rc.get_agencies(jurisdiction = 38)
+rc.get_agencies(jurisdictionID = 38)
 ```
 
 Likewise, this code snippet will return data for all agencies (in any jurisdiction) containing the word "education" (not case sensitive):
@@ -84,29 +84,19 @@ The __get_industries__ function returns a data frame of industries with data in 
 The following line will get you industry information for all 4-digit NAICS industries:
 
 ```
-rc.get_industries(codeLevel = 4)
+rc.get_industries(labellevel = 4)
 ```
 
-This line will get you information for the BEA industries:
+This line will get you information for the BEA industries (this function is temporarily disabled as of 1.0.0):
 
 ```
-rc.get_industries(standard = 'BEA')
+rc.get_industries(labelsource = 'BEA')
 ```
 
-Like the __get_agencies__ function, the `keyword` argument may also be used. The following code snippet will return information for all 6-digit NAICS industries with the word "fishing" in the name:
+Like the __get_agencies__ function, the `keyword` argument may also be used. The following code snippet will return information for all 6-digit NAICS industries with the word "fishing" in the name (this function is temporarily disabled as of 1.0.0):
 
 ```
 rc.get_industries(keyword = 'fishing', codeLevel = 6)
-```
-
-### Documents
-
-The __get_documents__ function returns a data frame with metadata for document-level data. The fucntion takes two parameters, jurisdictionID (required) and documentType (default value of 1, which is "all regulations").
-
-The following line will get metadata for documents associated with U.S. Federal healthcare regulations.
-
-```
-rc.get_documents(jurisdictionID = 38, documentType = 3)
 ```
 
 ## Values
@@ -115,7 +105,7 @@ The __get_values__ function is the primary function for obtaining RegData from t
 
 * jurisdiction (required) - value or list of jurisdiction IDs
 * series (required) - value or list of series IDs
-* date (required) - value or list of years
+* year (required) - value or list of years
 * agency (optional) - value or list of agencies
 * industry (optional) - value of list of agencies
 * dateIsRange (optional) - specify if the list of years provided for the parameter years is a range. Default is True.
@@ -130,15 +120,15 @@ The __get_values__ function is the primary function for obtaining RegData from t
 In the example below, we are interested in the total number of restrictions and total number of words for the US (get_jurisdictions(38)) for the dates 2010 to 2019.
 
 ```
-rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019])
+rc.get_values(series = [1,2], jurisdiction = 38, year = [2010, 2019])
 ```
 
 ### Get all Values for a Country
 
-The `country` argument can be used to get all values for one or multiple series for a specific national jurisdiction. The following line will get you a summary of the national and state-level restriction counts for the United States from 2016 to 2019:
+The `country` argument can be used to get all values for one or multiple series for a specific national jurisdiction. The following line will get you a summary of the national and state-level restriction counts for the United States from 2016 to 2019 (this function is temporarily disabled as of 1.0.0):
 
 ```
-rc.get_values(series = 1, jurisdiction = 38, date = [2016, 2019], country=True)
+rc.get_values(series = 1, jurisdiction = 38, year = [2016, 2019], country=True)
 ```
 
 ### Values by Subgroup
@@ -153,8 +143,8 @@ To obtain the restrictions for a specific agency (or agencies), the series id su
 # Identify all agencies
 rc.list_agencies(jurisdictionID)
 
-# Call the get_values() for this agency and series 91
-rc.get_values(series = 91, jurisdiction = 38, date = [1990, 2018], agency = [81, 84])
+# Call the get_values() for two agencies and series 13
+rc.get_values(series = 13, jurisdiction = 38, year = [2000, 2018], agency = [15918, 15921])
 ```
 
 #### Values by Agency and Industry
