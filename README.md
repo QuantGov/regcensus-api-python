@@ -95,16 +95,16 @@ The following line will get you industry information for all 4-digit NAICS indus
 rc.get_industries(labellevel = 4)
 ```
 
-This line will get you information for the BEA industries (this function is temporarily disabled as of 1.0.0):
+This line will get you information for the NAICS industries (this function is temporarily disabled as of 1.0.0):
 
 ```
-rc.get_industries(labelsource = 'BEA')
+rc.get_industries(labelsource = 'NAICS')
 ```
 
 Like the __get_agencies__ function, the `keyword` argument may also be used. The following code snippet will return information for all 6-digit NAICS industries with the word "fishing" in the name (this function is temporarily disabled as of 1.0.0):
 
 ```
-rc.get_industries(keyword = 'fishing', codeLevel = 6)
+rc.get_industries(keyword = 'fishing', labellevel = 6)
 ```
 
 ## Values
@@ -149,7 +149,7 @@ To obtain the restrictions for a specific agency (or agencies), the series id su
 
 ```
 # Identify all agencies
-rc.list_agencies(jurisdictionID)
+rc.list_agencies(jurisdictionID = 38)
 
 # Call the get_values() for two agencies and series 13
 rc.get_values(series = 13, jurisdiction = 38, year = [2000, 2018], agency = [15918, 15921])
@@ -161,10 +161,10 @@ Some agency series may also have data by industry. For example, under the Total 
 
 Valid values for industries include the industry codes specified in the classification system obtained by calling the __get_industries(jurisdiction)__ function.
 
-In the example below, the series 92 (Restrictions by Agency and Industry), we can request data for the two industries 111 and 33 by the following code snippet.
+In the example below, for the below series, we can request data for the two industries 111 and 33 by the following code snippet.
 
 ```
-rc.get_values(series = 92, jurisdiction = 38, time = [1990, 2000], industry = [111, 33], agency = 66)
+rc.get_values(series = [1,28,33,36], jurisdiction = 38, year = [1990, 2000], label = 111, agency = 0)
 ```
 
 ### Document-Level Values
@@ -174,13 +174,13 @@ For most use-cases, our summary-level data will be enough. However, document-lev
 We can request the same data from above, but at the document level, using the following code snippet.
 
 ```
-rc.get_values(series = [1,2], jurisdiction = 38, date = ['2010-01-01', '2019-01-01'], summary=False)
+rc.get_values(series = [1,2], jurisdiction = 38, year = 2020, summary=False)
 ```
 
 Alternatively, we can use the  __get_document_values__ function as in the following code snippet.
 
 ```
-rc.get_document_values(series = [1,2], jurisdiction = 38, date = ['2010-01-01', '2019-01-01'])
+rc.get_document_values(series = [1,2], jurisdiction = 38, year = 2019)
 ```
 
 Note that for document-level queries, a full date (not just the year) is often required. See the __get_series__ function for specifics by jurisdiction.
@@ -192,7 +192,7 @@ _This currently applies to the RegData U.S. Annual project only._
 As of version 0.2.4, a version parameter can be passed to the __get_values__ function to obtained data from past versions of data (currently only for the RegData U.S. Annual project). Available versions and their associated versionIDs can be obtained by using the __get_version__ function. If no version parameter is given, the most recent version will be returned. The following code snippet will return restrictions data for the 3.2 version of RegData U.S. Annual for the years 2010 to 2019.
 
 ```
-rc.get_values(series = 1, jurisdiction = 38, date = [2010, 2019], version = 1)
+rc.get_values(series = 1, jurisdiction = 38, year = [2010, 2019], version = 1)
 ```
 
 ### Merging with Metadata
@@ -206,13 +206,13 @@ We can merge the agency data with the values data as in the code snippet below.
 ```
 agencies = rc.get_agencies(jurisdictionID = 38)
 agency_by_industry = rc.get_values(
-    series = 92,
+    series = [1,28,33,36],
     jurisdiction = 38,
-    time = [1990, 2000],
-    industry = [111, 33],
-    agency = [66, 111])
+    year = [1990, 2000],
+    label = 111,
+    agency = 0)
 agency_restrictions_ind = agency_by_industry.merge(
-    agencies, by='agency_id')
+    agencies, on='agency_id')
 ```
 
 ## Downloading Data
@@ -224,7 +224,7 @@ There are two different ways to download data retrieved from RegCensusAPI:
 2. As of version 0.2.0, the __get_values__ function includes a `download` argument, which allows the user to simply download a csv of the data in the same line as the API call. See below for an example of this call.
 
 ```
-rc.get_values(series = [1,2], jurisdiction = 38, date = [2010, 2019], download='regdata2010to2019.csv')
+rc.get_values(series = [1,28,33,36], jurisdiction = 38, date = [2010, 2019], download='regdata2010to2019.csv')
 ```
 
 [1]:https://api.quantgov.org/swagger-ui.html
