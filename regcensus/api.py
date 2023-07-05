@@ -231,7 +231,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
             page += 1
             output = json_normalize(json.loads(requests.get(
                 url_call + f'&page={page}').json()))
-            full_output = full_output.append(output)
+            full_output = pd.concat([full_output, output])
         output = full_output
 
     # If download path is given, write csv instead of returning dataframe
