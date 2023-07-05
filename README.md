@@ -59,6 +59,14 @@ Use the __get_jurisdiction__ function to return a data frame with all the jurisd
 rc.get_jurisdictions()
 ```
 
+### DataFinder
+
+Use the __get_datafinder__ function to return a data frame for a specific jurisdiction. It returns the following attributes in the data - `['jurisdiction', 'documentType', 'year', 'series', 'document_endpoints', 'summary_endpoints', 'label_endpoints']`
+
+```
+get_datafinder(jurisdiction = 38)
+```
+
 ### Agencies
 
 The __get_agencies__ function returns a data frame of agencies with data in RegData. Either the `jurisdictionID` or `keyword` arguments must be supplied. If `jurisdictionID` is passed, the data frame will include information for all agencies in that jurisdiction. If `keyword` is supplied, the data frame will include information for all agencies whose name contains the keyword.
