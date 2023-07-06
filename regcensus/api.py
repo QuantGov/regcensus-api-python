@@ -157,6 +157,12 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         url_call += f'&labelLevel={labellevel}'
 
     # If multiple years are given, parses the list into a string
+    if not summary and type(year) == list:
+        print(
+            'WARNING: document-level data is only returnable for a single '
+            'year at a time. Returning the first year requested.'
+        )
+        year = year[0]
     if type(year) == list:
         # If dateIsRange, parses the list to include all years
         if dateIsRange and len(year) == 2:
