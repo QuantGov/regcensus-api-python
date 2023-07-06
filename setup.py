@@ -4,7 +4,7 @@ import setuptools
 
 setup(
     name='regcensus',
-    version='1.0.0',
+    version='1.0.1',
     description='Python package for accessing data from the QuantGov API',
     url='https://github.com/QuantGov/regcensus-api-python',
     author='QuantGov',

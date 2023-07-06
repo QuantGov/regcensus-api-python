@@ -157,6 +157,12 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         url_call += f'&labelLevel={labellevel}'
 
     # If multiple years are given, parses the list into a string
+    if not summary and type(year) == list:
+        print(
+            'WARNING: document-level data is only returnable for a single '
+            'year at a time. Returning the first year requested.'
+        )
+        year = year[0]
     if type(year) == list:
         # If dateIsRange, parses the list to include all years
         if dateIsRange and len(year) == 2:
@@ -231,7 +237,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
             page += 1
             output = json_normalize(json.loads(requests.get(
                 url_call + f'&page={page}').json()))
-            full_output = full_output.append(output)
+            full_output = pd.concat([full_output, output])
         output = full_output
 
     # If download path is given, write csv instead of returning dataframe
@@ -251,6 +257,9 @@ def get_document_values(*args, **kwargs):
 
     Simply returns get_values() with summary=False
     """
+    if type(kwargs["year"]) == list:
+        print_error({"message" : "Only single year can be passed."})
+        return
     return get_values(*args, **kwargs, summary=False)
 
 
