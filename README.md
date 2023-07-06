@@ -183,7 +183,7 @@ Alternatively, we can use the  __get_document_values__ function as in the follow
 rc.get_document_values(series = [1,2], jurisdiction = 38, year = 2019)
 ```
 
-Note that for document-level queries, a full date (not just the year) is often required. See the __get_series__ function for specifics by jurisdiction.
+See the __get_series__ function for specifics by jurisdiction.
 
 ### Version
 
@@ -224,7 +224,7 @@ There are two different ways to download data retrieved from RegCensusAPI:
 2. As of version 0.2.0, the __get_values__ function includes a `download` argument, which allows the user to simply download a csv of the data in the same line as the API call. See below for an example of this call.
 
 ```
-rc.get_values(series = [1,28,33,36], jurisdiction = 38, date = [2010, 2019], download='regdata2010to2019.csv')
+rc.get_values(series = [1,28,33,36], jurisdiction = 38, year = [2010, 2019], download='regdata2010to2019.csv')
 ```
 
 [1]:https://api.quantgov.org/swagger-ui.html

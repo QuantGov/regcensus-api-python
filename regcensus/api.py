@@ -251,6 +251,9 @@ def get_document_values(*args, **kwargs):
 
     Simply returns get_values() with summary=False
     """
+    if type(kwargs["year"]) == list:
+        print_error({"message" : "Only single year can be passed."})
+        return
     return get_values(*args, **kwargs, summary=False)
 
 
