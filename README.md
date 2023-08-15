@@ -227,7 +227,7 @@ There are two different ways to download data retrieved from RegCensusAPI:
 rc.get_values(series = [1,28,33,36], jurisdiction = 38, year = [2010, 2019], download='regdata2010to2019.csv')
 ```
 
-[1]:https://api.quantgov.org/swagger-ui.html
+[1]:https://api.quantgov.org/
 [2]:https://www.quantgov.org/download-interactively
 [3]:https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html
 [4]:https://mercatus.wistia.com/medias/1hxnkfjnxa
