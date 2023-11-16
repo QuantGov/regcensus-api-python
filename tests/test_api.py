@@ -16,7 +16,7 @@ def order_results(results, column, descending=False):
 def test_get_series():
     results = rc.get_series(verbose=1)
     assert order_results(results, 'series_id') == [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+        1, 2, 3, 4, 5, 6, 7, 8, 10, 11
     ]
 
 
@@ -28,9 +28,10 @@ def test_get_agencies():
 
 
 def test_get_agencies_keyword():
-    results = rc.get_agencies(keyword='Education', verbose=1)
+    results = rc.get_agencies(
+        jurisdictionID=51, keyword='Education', verbose=1)
     assert order_results(results, 'agency_id') == [
-        44, 45, 46, 47, 48, 49, 263, 264, 265, 266
+       3548, 3573, 3574, 3575, 3576, 3577, 3578, 3579, 3580, 3581
     ]
 
 
@@ -223,13 +224,13 @@ def test_get_values_incorrect_years(capsys):
 
 
 def test_get_values_agency():
-    results = rc.get_values(series=13, jurisdiction=66, year=2021, agency=8777)
-    assert order_results(results, 'series_value') == [4305.0]
+    results = rc.get_values(series=13, jurisdiction=66, year=2023, agency=24221)
+    assert order_results(results, 'series_value') == [4198.0]
 
 
 def test_get_values_all_agencies():
     results = rc.get_values(
-        series=13, jurisdiction=66, year=2021
+        series=13, jurisdiction=66, year=2023
     )
     assert order_results(results, 'series_value') == [
         0.0, 1.0, 1.0, 2.0, 2.0, 2.0, 4.0, 4.0, 5.0, 5.0
@@ -238,9 +239,9 @@ def test_get_values_all_agencies():
 
 def test_get_values_multiple_agencies():
     results = rc.get_values(
-        series=13, jurisdiction=66, year=2021, agency=[8777, 8813]
+        series=13, jurisdiction=66, year=2023, agency=[24221, 24326]
     )
-    assert order_results(results, 'series_value') == [3311.0, 4305.0]
+    assert order_results(results, 'series_value') == [275.0, 4198.0]
 
 
 # def test_get_values_version():
@@ -294,18 +295,18 @@ def test_list_series():
 def test_list_dates():
     results = rc.list_dates(44)
     assert list(reversed(results)) == [
-        2022, 2021, 2020, 2019, 2018
+        2023, 2022, 2021, 2020, 2019, 2018
     ]
 
 
 def test_list_agencies():
     results = rc.list_agencies(jurisdictionID=66)
-    assert results['wild animals'] == 8867
+    assert results['wild animals'] == 24312
 
 
 def test_list_agencies_keyword():
-    results = rc.list_agencies(keyword='Education')
-    assert results['california department of education (California)'] == 3576
+    results = rc.list_agencies(jurisdictionID=51, keyword='Education')
+    assert results['california department of education (California)'] == 19967
 
 
 def test_list_agencies_error(capsys):

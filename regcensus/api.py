@@ -91,7 +91,8 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
                     get_datafinder(
                         jurisdiction, documentType).to_string(index=False))
             except TypeError:
-                print("Valid jurisdiction ID required. Consider the following:\n")
+                print("Valid jurisdiction ID required. "
+                      "Consider the following:\n")
                 pp.pprint(list_jurisdictions())
             return
 
@@ -163,6 +164,13 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
             'year at a time. Returning the first year requested.'
         )
         year = year[0]
+    # Shows warning for returning document-level data before 2020
+    if not summary and int(year) <= 2019:
+        print(
+            'WARNING: The document_reference column for document-level data '
+            'for 2019 and before is not compatible with years 2020-2023. '
+            'These data will be compatible in version 6.0.'
+        )
     if type(year) == list:
         # If dateIsRange, parses the list to include all years
         if dateIsRange and len(year) == 2:
@@ -258,7 +266,7 @@ def get_document_values(*args, **kwargs):
     Simply returns get_values() with summary=False
     """
     if type(kwargs["year"]) == list:
-        print_error({"message" : "Only single year can be passed."})
+        print_error({"message": "Only single year can be passed."})
         return
     return get_values(*args, **kwargs, summary=False)
 
@@ -334,9 +342,7 @@ def get_series(verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = series_url()
-    if verbose:
-        print(f'API call: {url_call}')
+    url_call = series_url(verbose)
     return clean_columns(json_normalize(
         json.loads(requests.get(url_call).json())))
 
@@ -350,11 +356,9 @@ def get_agencies(jurisdictionID=None, keyword=None, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = agency_url(jurisdictionID, keyword)
+    url_call = agency_url(jurisdictionID, keyword, verbose)
     if not url_call:
         return
-    if verbose:
-        print(f'API call: {url_call}')
     return clean_columns(json_normalize(
         json.loads(requests.get(url_call).json())))
 
@@ -368,9 +372,7 @@ def get_jurisdictions(verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = jurisdictions_url()
-    if verbose:
-        print(f'API call: {url_call}')
+    url_call = jurisdictions_url(verbose)
     return clean_columns(json_normalize(
         json.loads(requests.get(url_call).json())))
 
@@ -387,9 +389,7 @@ def get_industries(keyword=None, labellevel=3, labelsource=None, verbose=0):
 
     Returns: pandas dataframe with the metadata
     """
-    url_call = industries_url(keyword, labellevel, labelsource)
-    if verbose:
-        print(f'API call: {url_call}')
+    url_call = industries_url(keyword, labellevel, labelsource, verbose)
     return clean_columns(json_normalize(
         json.loads(requests.get(url_call).json())))
 
@@ -480,7 +480,7 @@ def list_document_types(jurisdictionID=None, reverse=False, verbose=0):
 
 
 @Memoized
-def list_series(reverse=False):
+def list_series(reverse=False, verbose=0):
     """
     Args:
         jurisdictionID: ID for the jurisdiction
@@ -488,7 +488,7 @@ def list_series(reverse=False):
 
     Returns: dictionary containing names of series and associated IDs
     """
-    url_call = series_url()
+    url_call = series_url(verbose)
     content = json.loads(requests.get(url_call).json())
     if reverse:
         return dict(sorted({
@@ -514,7 +514,7 @@ def list_dates(jurisdictionID, documentType=None):
 
 
 @Memoized
-def list_agencies(jurisdictionID=None, keyword=None, reverse=False):
+def list_agencies(jurisdictionID=None, keyword=None, reverse=False, verbose=0):
     """
     Args:
         jurisdictionID: ID for the jurisdiction
@@ -522,10 +522,14 @@ def list_agencies(jurisdictionID=None, keyword=None, reverse=False):
 
     Returns: dictionary containing names of agencies and associated IDs
     """
-    url_call = agency_url(jurisdictionID, keyword)
-    if not url_call:
+    # Removes duplicate agency names (uses only most recent)
+    df = get_agencies(jurisdictionID, keyword, verbose)
+    if type(df) == type(None):
         return
-    content = json.loads(requests.get(url_call).json())
+    df = df.sort_values(
+        'agency_id', ascending=False).drop_duplicates(
+        'agency_name', keep='first')
+    content = json.loads(df.T.to_json())
 
     jurisdictions_df = get_jurisdictions()
     jurisdiction_id_name = dict(zip(jurisdictions_df["jurisdiction_id"],
@@ -536,22 +540,28 @@ def list_agencies(jurisdictionID=None, keyword=None, reverse=False):
         if keyword:
             return dict(sorted({
                 a["agency_id"]:
-                    f'{a["agency_name"]} ({jurisdiction_id_name[int(a["a_jurisdiction_id"])]})'
-                for a in content if a["agency_name"]}.items()))
+                    f'{a["agency_name"]} '
+                    f'({jurisdiction_id_name[int(a["a_jurisdiction_id"])]})'
+                for a in content.values()
+                if a["agency_name"]}.items()))
         else:
             return dict(sorted({
                 a["agency_id"]: a["agency_name"]
-                for a in content if a["agency_name"]}.items()))
+                for a in content.values()
+                if a["agency_name"]}.items()))
     else:
         if keyword:
             return dict(sorted({
-                f'{a["agency_name"]} ({jurisdiction_id_name[int(a["a_jurisdiction_id"])]})':
+                f'{a["agency_name"]} '
+                f'({jurisdiction_id_name[int(a["a_jurisdiction_id"])]})':
                     a["agency_id"]
-                for a in content if a["agency_name"]}.items()))
+                for a in content.values()
+                if a["agency_name"]}.items()))
         else:
             return dict(sorted({
                 a["agency_name"]: a["agency_id"]
-                for a in content if a["agency_name"]}.items()))
+                for a in content.values()
+                if a["agency_name"]}.items()))
 
 
 @Memoized
@@ -630,14 +640,20 @@ def list_industries(
                 i["label_name"]: i["label_id"] for i in content}.items()))
 
 
-def series_url():
+def series_url(verbose=0):
     """Gets url call for dataseries endpoint."""
+    url_call = URL + '/dataseries'
+    if verbose:
+        print(f'API call: {url_call}')
     return URL + '/dataseries'
 
 
-def agency_url(jurisdictionID, keyword):
+def agency_url(jurisdictionID, keyword, verbose=0):
     """Gets url call for agencies endpoint."""
-    if keyword:
+    if keyword and jurisdictionID:
+        url_call = URL + (f'/agencies-keyword?'
+                          f'keyword={keyword}&jurisdiction={jurisdictionID}')
+    elif keyword:
         url_call = URL + (f'/agencies-keyword?'
                           f'keyword={keyword}')
     elif jurisdictionID:
@@ -646,15 +662,20 @@ def agency_url(jurisdictionID, keyword):
     else:
         print('Must include either "jurisdictionID" or "keyword."')
         return
+    if verbose:
+        print(f'API call: {url_call}')
     return url_call
 
 
-def jurisdictions_url():
+def jurisdictions_url(verbose=0):
     """Gets url call for jurisdictions endpoint."""
-    return URL + '/jurisdictions/'
+    url_call = URL + '/jurisdictions/'
+    if verbose:
+        print(f'API call: {url_call}')
+    return url_call
 
 
-def industries_url(keyword, labellevel, labelsource):
+def industries_url(keyword, labellevel, labelsource, verbose=0):
     """Gets url call for label (formerly industries) endpoint."""
     if keyword:
         url_call = (
@@ -664,6 +685,8 @@ def industries_url(keyword, labellevel, labelsource):
         url_call = URL + f'/labels?labellevel={labellevel}'
     if labelsource:
         url_call += f'&labelsource={labelsource}'
+    if verbose:
+        print(f'API call: {url_call}')
     return url_call
 
 
