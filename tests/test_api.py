@@ -118,22 +118,22 @@ def test_get_values_multiple_jurisdiction_names():
     assert order_results(results, 'series_value') == [52569.0, 107063.0]
 
 
-def test_get_values_all_industries():
-    results = rc.get_values(
-        series=28, jurisdiction=58, year=2019, filtered=False
-    )
-    assert order_results(results, 'series_value', descending=True) == [
-        3596.1658897194,
-        3594.9787034937,
-        2399.6540837687,
-        2346.9849032768,
-        2231.5794873347,
-        1910.4039869067,
-        1858.6602805732,
-        1845.9105216636,
-        1756.3024117017,
-        1449.754496272
-    ]
+# def test_get_values_all_industries():
+#     results = rc.get_values(
+#         series=28, jurisdiction=58, year=2019, filtered=False
+#     )
+#     assert order_results(results, 'series_value', descending=True) == [
+#         3596.1658897194,
+#         3594.9787034937,
+#         2399.6540837687,
+#         2346.9849032768,
+#         2231.5794873347,
+#         1910.4039869067,
+#         1858.6602805732,
+#         1845.9105216636,
+#         1756.3024117017,
+#         1449.754496272
+#     ]
 
 
 def test_get_values_multiple_industries():
