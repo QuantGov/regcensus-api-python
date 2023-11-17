@@ -15,8 +15,7 @@ URL = 'https://api.quantgov.org'
 
 def get_values(series, jurisdiction, year, documentType=1, summary=True,
                dateIsRange=True, country=False, agency=None, cluster=None,
-               label=None, industry=None, filtered=True,
-               labellevel=3, industryLevel=None,
+               label=None, industry=None, labellevel=3, industryLevel=None,
                labelsource='NAICS', version=None,
                download=False, page=None, date=None, verbose=0):
     """
@@ -38,8 +37,6 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         label (formerly industry) (optional):
             Industry code using the jurisdiction-specific
             coding system (returns all 3-digit industries by default)
-        filtered (optional): Exclude poorly-performing industry results
-            (use of unfiltered results is NOT recommended)
         labellevel (formerly industryLevel) (optional):
             Level of NAICS industries to include
         version (optional): Version ID for datasets with multiple versions
@@ -58,7 +55,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         return
 
     # If multiple jurisdiction names are given, find list of IDs
-    if type(jurisdiction) == list and re.search(
+    if jurisdiction.isinstance(type) and re.search(
             r'[A-Za-z]', str(jurisdiction[0])):
         jurisdiction = [list_jurisdictions()[i] for i in jurisdiction]
     # If jurisdiction name is passed, find ID
@@ -97,7 +94,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
             return
 
     # If multiple series are given, parses the list into a string
-    if type(series) == list:
+    if series.isinstance(list):
         url_call += f'series={",".join(str(i) for i in series)}'
     elif type(series) in [int, str]:
         url_call += f'series={series}'
@@ -109,7 +106,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         return
 
     # If multiple jurisdiction IDs are given, parses the list into a string
-    if type(jurisdiction) == list:
+    if jurisdiction.isinstance(list):
         url_call += f'&jurisdiction={",".join(str(i) for i in jurisdiction)}'
     # If jurisdiction is just an ID, use jurisdiction
     elif type(jurisdiction) in [int, str]:
@@ -122,13 +119,13 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         return
 
     # If multiple agencies are given, parses the list into a string
-    if type(agency) == list:
+    if agency.isinstance(list):
         url_call += f'&agency={",".join(str(i) for i in agency)}'
     elif agency:
         url_call += f'&agency={agency}'
 
     # If multiple clusters are given, parses the list into a string
-    if type(cluster) == list:
+    if cluster.isinstance(list):
         url_call += f'&cluster={",".join(str(i) for i in cluster)}'
     elif cluster:
         url_call += f'&cluster={cluster}'
@@ -141,7 +138,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         print('WARNING: industryLevel is deprecated; use labellevel')
         labellevel = industryLevel
     # If multiple industries are given, parses the list into a string
-    if type(label) == list:
+    if label.isinstance(list):
         if labelsource == 'NAICS':
             label = [list_industries(labellevel=labellevel,
                                      labelsource=labelsource,
@@ -158,7 +155,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
         url_call += f'&labelLevel={labellevel}'
 
     # If multiple years are given, parses the list into a string
-    if not summary and type(year) == list:
+    if not summary and year.isinstance(list):
         print(
             'WARNING: document-level data is only returnable for a single '
             'year at a time. Returning the first year requested.'
@@ -171,7 +168,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
             'for 2019 and before is not compatible with years 2020-2023. '
             'These data will be compatible in version 6.0.'
         )
-    if type(year) == list:
+    if year.isinstance(list):
         # If dateIsRange, parses the list to include all years
         if dateIsRange and len(year) == 2:
             year = range(int(year[0]), int(year[1]) + 1)
@@ -195,13 +192,6 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
             print('WARNING: Returning document-level industry results. '
                   'This query make take several minutes.')
         url_call = url_call.replace('/summary', '/documents')
-
-    # Allows for unfiltered industry results to be retrieved. Includes
-    # warning message explaining that these results should not be trusted.
-    if label and not filtered:
-        print('WARNING: Returning unfiltered industry results. '
-              'Use of these results is NOT recommended.')
-        url_call += '&filteredOnly=false'
 
     # Adds documentType argument (default is 1 in API)
     if documentType:
@@ -250,7 +240,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
 
     # If download path is given, write csv instead of returning dataframe
     if download:
-        if type(download) == str:
+        if download.isinstance(str):
             clean_columns(output).to_csv(download, index=False)
         else:
             print("Valid outpath required to download.")
@@ -265,7 +255,7 @@ def get_document_values(*args, **kwargs):
 
     Simply returns get_values() with summary=False
     """
-    if type(kwargs["year"]) == list:
+    if kwargs["year"].isinstance(list):
         print_error({"message": "Only single year can be passed."})
         return
     return get_values(*args, **kwargs, summary=False)
@@ -314,9 +304,9 @@ def get_endpoint(series, jurisdiction, year, documentType, summary=True):
 
     Returns the endpoint, e.g. '/state-summary' for summary-level state data
     """
-    if type(year) == list:
+    if year.isinstance(list):
         year = [int(y) for y in year]
-    if type(series) == list:
+    if series.isinstance(list):
         series = [int(s) for s in series]
     try:
         datafinder = get_datafinder(jurisdiction, documentType).query(
@@ -524,7 +514,7 @@ def list_agencies(jurisdictionID=None, keyword=None, reverse=False, verbose=0):
     """
     # Removes duplicate agency names (uses only most recent)
     df = get_agencies(jurisdictionID, keyword, verbose)
-    if type(df) == type(None):
+    if df.isinstance(type(None)):
         return
     df = df.sort_values(
         'agency_id', ascending=False).drop_duplicates(
