@@ -3,6 +3,7 @@ import re
 import requests
 import pandas as pd
 import pprint
+import os
 
 from regcensus.cache import Memoized
 
@@ -10,7 +11,12 @@ pp = pprint.PrettyPrinter()
 
 date_format = re.compile(r'\d{4}(?:-\d{2}-\d{2})?')
 
-URL = 'https://api.quantgov.org'
+try:
+    APIKEY = os.environ['REGCENSUS_KEY']
+except KeyError:
+    print('ERROR: Set your API key into an environment variable called REGCENSUS_KEY')
+
+URL = 'https://yhjle3rrc4.execute-api.us-east-1.amazonaws.com/live'
 
 
 def get_values(series, jurisdiction, year, documentType=1, summary=True,
@@ -218,7 +224,7 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
 
     # Puts flattened JSON output into a pandas DataFrame
     try:
-        json_output = requests.get(url_call).json()
+        json_output = get_json(url_call)
         output = json_normalize(json.loads(json_output))
     # Prints error message if call errors
     except TypeError:
@@ -233,8 +239,8 @@ def get_values(series, jurisdiction, year, documentType=1, summary=True,
             if verbose:
                 print(f'Output truncated, found page {page}')
             page += 1
-            output = json_normalize(json.loads(requests.get(
-                url_call + f'&page={page}').json()))
+            output = json_normalize(
+                json.loads(get_json(url_call + f'&page={page}')))
             full_output = pd.concat([full_output, output])
         output = full_output
 
@@ -283,14 +289,12 @@ def get_datafinder(jurisdiction, documentType=None):
              along with the endpoints to access the data
     """
     if documentType:
-        output = clean_columns(json_normalize(json.loads(requests.get(
+        output = clean_columns(json_normalize(json.loads(get_json(
             URL + (f'/datafinder?jurisdiction={jurisdiction}&'
-                   f'documenttype={documentType}')
-        ).json())))
+                   f'documenttype={documentType}')))))
     else:
-        output = clean_columns(json_normalize(json.loads(requests.get(
-            URL + f'/datafinder?jurisdiction={jurisdiction}'
-        ).json())))
+        output = clean_columns(json_normalize(json.loads(get_json(
+            URL + f'/datafinder?jurisdiction={jurisdiction}'))))
     return output.rename({
         'jurisdiction_id': 'jurisdiction',
         'document_type_id': 'documentType',
@@ -334,7 +338,7 @@ def get_series(verbose=0):
     """
     url_call = series_url(verbose)
     return clean_columns(json_normalize(
-        json.loads(requests.get(url_call).json())))
+        json.loads(get_json(url_call))))
 
 
 @Memoized
@@ -350,7 +354,7 @@ def get_agencies(jurisdictionID=None, keyword=None, verbose=0):
     if not url_call:
         return
     return clean_columns(json_normalize(
-        json.loads(requests.get(url_call).json())))
+        json.loads(get_json(url_call))))
 
 
 @Memoized
@@ -364,7 +368,7 @@ def get_jurisdictions(verbose=0):
     """
     url_call = jurisdictions_url(verbose)
     return clean_columns(json_normalize(
-        json.loads(requests.get(url_call).json())))
+        json.loads(get_json(url_call))))
 
 
 @Memoized
@@ -381,7 +385,7 @@ def get_industries(keyword=None, labellevel=3, labelsource=None, verbose=0):
     """
     url_call = industries_url(keyword, labellevel, labelsource, verbose)
     return clean_columns(json_normalize(
-        json.loads(requests.get(url_call).json())))
+        json.loads(get_json(url_call))))
 
 
 @Memoized
@@ -432,7 +436,7 @@ def get_versions(jurisdictionID, documentType=1, verbose=0):
     if verbose:
         print(f'API call: {url_call}')
     return clean_columns(json_normalize(
-        json.loads(requests.get(url_call).json())))
+        json.loads(get_json(url_call))))
 
 
 @Memoized
@@ -440,9 +444,8 @@ def get_documentation():
     """
     Get documentation for projects, including citations.
     """
-    return clean_columns(json_normalize(json.loads(requests.get(
-        URL + '/documentation'
-    ).json())))
+    return clean_columns(json_normalize(
+        json.loads(get_json(URL + '/documentation'))))
 
 
 @Memoized
@@ -458,7 +461,7 @@ def list_document_types(jurisdictionID=None, reverse=False, verbose=0):
         url_call = URL + '/documenttypes'
     if verbose:
         print(f'API call: {url_call}')
-    content = json.loads(requests.get(url_call).json())
+    content = json.loads(get_json(url_call))
     if reverse:
         return dict(sorted({
             d["document_type_id"]: d["document_type"]
@@ -479,7 +482,7 @@ def list_series(reverse=False, verbose=0):
     Returns: dictionary containing names of series and associated IDs
     """
     url_call = series_url(verbose)
-    content = json.loads(requests.get(url_call).json())
+    content = json.loads(get_json(url_call))
     if reverse:
         return dict(sorted({
             s["series_id"]: s["series_name"]
@@ -560,7 +563,7 @@ def list_clusters(reverse=False):
     Returns: dictionary containing names of clusters and associated IDs
     """
     url_call = URL + '/clusters'
-    content = json.loads(requests.get(url_call).json())
+    content = json.loads(get_json(url_call))
     if reverse:
         return dict(sorted({
             a["agency_cluster"]: a["cluster_name"]
@@ -577,7 +580,7 @@ def list_jurisdictions(reverse=False):
     Returns: dictionary containing names of jurisdictions and associated IDs
     """
     url_call = jurisdictions_url()
-    content = json.loads(requests.get(url_call).json())
+    content = json.loads(get_json(url_call))
     if reverse:
         return dict(sorted({
             j["jurisdiction_id"]: j["jurisdiction_name"]
@@ -602,7 +605,7 @@ def list_industries(
     Returns: dictionary containing names of industries and associated IDs
     """
     url_call = industries_url(keyword, labellevel, labelsource)
-    content = json.loads(requests.get(url_call).json())
+    content = json.loads(get_json(url_call))
     # If industry has codes, include the code in the key
     try:
         if onlyID:
@@ -678,6 +681,10 @@ def industries_url(keyword, labellevel, labelsource, verbose=0):
     if verbose:
         print(f'API call: {url_call}')
     return url_call
+
+
+def get_json(url_call):
+    return requests.get(url_call, headers={"x-api-key": APIKEY}).json()
 
 
 def clean_columns(df):
